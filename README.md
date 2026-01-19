@@ -1,70 +1,68 @@
 # CookWho Application - DEPLOYMENT GUIDE
 
-I am very sorry that the download process is causing trouble. The slowness you are seeing is unusual. This guide provides a main method and a manual workaround to ensure you can get your code downloaded and deployed.
+I am very sorry that the download and deployment process has been so difficult. This guide provides the final steps to get your code running.
 
 ---
 
-## Main Method
+### Step 1: Download Your Project Manually
 
-### Step 1: Download Your Project from Firebase Studio
+Because the "Zip & Download" feature in Firebase Studio can be slow, this manual method is more reliable.
 
-First, you need to download all the project files from this cloud environment to your computer.
+1.  **Download the `src` folder:**
+    *   In the Firebase Studio file explorer on the left, right-click on the `src` folder.
+    *   Select "Download" from the menu.
+    *   This will download a file named `src.zip`.
 
-1.  In the file list on the left side of the Studio, click on any single file (like `README.md`) to make sure that panel is active.
-2.  Press **Cmd + A** on your keyboard to select **ALL** files and folders. Everything in the list should become highlighted.
-3.  **Right-click** on any one of the highlighted files.
-4.  From the menu that appears, choose the **"Zip & Download"** option.
-5.  **This process may be very slow.** Please allow it several minutes to complete.
-6.  A single file named `cookwho.zip` should eventually save to your Mac's "Downloads" folder.
+2.  **Download the remaining project files:**
+    *   In the file explorer, select all of the *other* files (from `.env` down to `tsconfig.json`). To select multiple files, click on `.env`, hold down the **Shift key**, and then click on `tsconfig.json`.
+    *   Right-click on any of the selected files and choose "Zip & Download".
+    *   This will download a file named `workspace.zip`.
 
-**If the download does not start after 5 minutes, please cancel and proceed to the "Manual Workaround" section below.**
+### Step 2: Unzip and Combine
 
-### Step 2: Unzip the Project
+1.  **Create a new folder** on your Mac's Desktop and name it `cookwho`.
+2.  **Unzip `src.zip`:** Double-click the `src.zip` file. This will create a `src` folder. Move this `src` folder *inside* your new `cookwho` folder.
+3.  **Unzip `workspace.zip`:** Double-click the `workspace.zip` file.
+4.  **Move the contents:** Open the newly created `workspace` folder. Select all the files inside it and move them into your `cookwho` folder, alongside the `src` folder.
 
-1.  Go to your "Downloads" folder and find the `cookwho.zip` file.
-2.  Double-click it. This will create a new folder named `cookwho` containing all of your application code. This is your local project folder.
+When you are finished, your `cookwho` folder should contain the `src` folder and all the other project files, just like you see in Firebase Studio.
 
-### Step 3: Upload Your Code to GitHub (Web Method)
+### Step 3: Configure Environment Variables (Secrets)
 
-Now we will upload your code to GitHub using your web browser.
+Your application needs secret keys to connect to services like Mailgun and Google AI. You must add these to your Firebase App Hosting backend.
+
+1.  **Open your Firebase Console** and navigate to the App Hosting section. In the left-hand menu, look under the **Build** category and click on **App Hosting**.
+2.  On the App Hosting page, you will see a list of your backends. You should see a white card with the title **`cookwho-app`**.
+3.  **Click directly on the backend name `cookwho-app` inside the card.** Do NOT click the "Create backend" button. This will take you to the dashboard for your backend.
+4.  In the backend dashboard, click on the **"Settings"** tab.
+5.  In the settings, find the section for **"Secret management"** or **"Environment variables"**.
+6.  You need to add each of the keys listed below. For each key:
+    *   Click **"Add secret"**.
+    *   For **"Secret name"**, enter the name exactly as it appears here (e.g., `MAILGUN_API_KEY`).
+    *   For **"Secret value"**, paste in the actual key you get from Mailgun or Google.
+    *   Click **"Save"**.
+7.  **You MUST add all 3 secrets:** `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `GEMINI_API_KEY`.
+    *   **For now, it is okay to just put in placeholder text like "test" for each value if you don't have the real keys yet.** The goal is just to make the build succeed.
+
+### Step 4: Upload Your Code to GitHub (Web Method)
+
+This is the step that triggers the deployment.
 
 1.  **Open Your Repository:**
-    *   Go to your `cookwho` repository on GitHub. It should be at a URL like `https://github.com/slidearama-firebase/cookwho`.
+    *   Go to your `cookwho` repository on GitHub: `https://github.com/slidearama-firebase/cookwho`.
 
 2.  **Start the Upload:**
-    *   On your repository page, click the **"Add file"** button.
-    *   From the dropdown menu that appears, select **"Upload files"**.
+    *   On your repository page, click the **"Add file"** button and select **"Upload files"**.
 
 3.  **Upload Your Project Files:**
-    *   You will see a page that says "Drag files here...".
-    *   Open the `cookwho` folder that you unzipped in Step 2.
-    *   **Select all the files AND folders** inside your `cookwho` folder.
+    *   Open the `cookwho` folder on your Mac.
+    *   **Select all files and folders** inside `cookwho`.
     *   **Drag all of them at once** and drop them into the box on the GitHub website.
-    *   Wait for GitHub to finish processing all the files. This might take a minute or two.
 
 4.  **Commit the Files:**
     *   Once the files are processed, scroll to the bottom of the page.
-    *   In the first text box (the one for the commit message), type: `Initial project commit`.
+    *   In the first text box, type: `Add project code and secrets config`.
     *   Ensure the "Commit directly to the `main` branch" option is selected.
     *   Click the green **"Commit changes"** button.
 
-That's it! This will trigger your first real deployment on Firebase App Hosting.
-
----
-
-## Manual Workaround (If Main Method Fails)
-
-If the main download method fails after 5 minutes, we have to do it piece by piece. I apologize for this inconvenience.
-
-**Part A: Download the `src` folder**
-1. Right-click *only* on the `src` folder in the file list.
-2. Select "Zip & Download". This should be much faster.
-3. A file `src.zip` will download. Find and unzip it on your computer.
-
-**Part B: Download the rest of the files**
-1. Create a new folder on your Mac called `cookwho`.
-2. Move the `src` folder from Part A into your new `cookwho` folder.
-3. Now, for the remaining files (`package.json`, `README.md`, etc.), you may have to download them one-by-one. Right-click on each file in the Studio file list and look for a "Download" option.
-4. Place each downloaded file into your `cookwho` folder alongside the `src` folder.
-
-Once you have the `cookwho` folder fully assembled on your computer, you can proceed with **Step 3: Upload Your Code to GitHub**.
+This will trigger a new deployment. Because you added the secrets in Step 3, this deployment should succeed.

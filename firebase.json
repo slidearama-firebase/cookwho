@@ -5,7 +5,7 @@
       {
         "source": "**",
         "apphosting": {
-          "backendId": "cookwho"
+          "backendId": "cookwho-app"
         }
       }
     ]
