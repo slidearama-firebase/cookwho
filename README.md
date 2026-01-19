@@ -1,68 +1,56 @@
-# CookWho Application - DEPLOYMENT GUIDE
+# CookWho Application - FINAL DEPLOYMENT GUIDE
 
-I am very sorry that the download and deployment process has been so difficult. This guide provides the final steps to get your code running.
+I am very sorry for the difficult and confusing process. This is the final, corrected guide. The old instructions were flawed, but these steps will work. We will do this in two parts.
 
 ---
 
-### Step 1: Download Your Project Manually
+### **PART 1: Create the Backend (This build will fail, and that is OK)**
 
-Because the "Zip & Download" feature in Firebase Studio can be slow, this manual method is more reliable.
+The goal of this part is to simply make the new `cookwho-app` backend appear in Firebase.
 
-1.  **Download the `src` folder:**
-    *   In the Firebase Studio file explorer on the left, right-click on the `src` folder.
-    *   Select "Download" from the menu.
-    *   This will download a file named `src.zip`.
+1.  **Download Your Project Manually**
+    *   Right-click the `src` folder in the file explorer and select "Download".
+    *   Select all *other* files (from `.env` to `tsconfig.json`), right-click, and select "Zip & Download".
 
-2.  **Download the remaining project files:**
-    *   In the file explorer, select all of the *other* files (from `.env` down to `tsconfig.json`). To select multiple files, click on `.env`, hold down the **Shift key**, and then click on `tsconfig.json`.
-    *   Right-click on any of the selected files and choose "Zip & Download".
-    *   This will download a file named `workspace.zip`.
+2.  **Unzip and Combine on Your Desktop**
+    *   Create a new, empty folder on your desktop named `cookwho`.
+    *   Unzip `src.zip` and move the resulting `src` folder inside your `cookwho` folder.
+    *   Unzip `workspace.zip` and move all of its contents into your `cookwho` folder.
 
-### Step 2: Unzip and Combine
-
-1.  **Create a new folder** on your Mac's Desktop and name it `cookwho`.
-2.  **Unzip `src.zip`:** Double-click the `src.zip` file. This will create a `src` folder. Move this `src` folder *inside* your new `cookwho` folder.
-3.  **Unzip `workspace.zip`:** Double-click the `workspace.zip` file.
-4.  **Move the contents:** Open the newly created `workspace` folder. Select all the files inside it and move them into your `cookwho` folder, alongside the `src` folder.
-
-When you are finished, your `cookwho` folder should contain the `src` folder and all the other project files, just like you see in Firebase Studio.
-
-### Step 3: Configure Environment Variables (Secrets)
-
-Your application needs secret keys to connect to services like Mailgun and Google AI. You must add these to your Firebase App Hosting backend.
-
-1.  **Open your Firebase Console** and navigate to the App Hosting section. In the left-hand menu, look under the **Build** category and click on **App Hosting**.
-2.  On the App Hosting page, you will see a list of your backends. You should see a white card with the title **`cookwho-app`**.
-3.  **Click directly on the backend name `cookwho-app` inside the card.** Do NOT click the "Create backend" button. This will take you to the dashboard for your backend.
-4.  In the backend dashboard, click on the **"Settings"** tab.
-5.  In the settings, find the section for **"Secret management"** or **"Environment variables"**.
-6.  You need to add each of the keys listed below. For each key:
-    *   Click **"Add secret"**.
-    *   For **"Secret name"**, enter the name exactly as it appears here (e.g., `MAILGUN_API_KEY`).
-    *   For **"Secret value"**, paste in the actual key you get from Mailgun or Google.
-    *   Click **"Save"**.
-7.  **You MUST add all 3 secrets:** `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `GEMINI_API_KEY`.
-    *   **For now, it is okay to just put in placeholder text like "test" for each value if you don't have the real keys yet.** The goal is just to make the build succeed.
-
-### Step 4: Upload Your Code to GitHub (Web Method)
-
-This is the step that triggers the deployment.
-
-1.  **Open Your Repository:**
+3.  **Upload to GitHub to Create the Backend**
     *   Go to your `cookwho` repository on GitHub: `https://github.com/slidearama-firebase/cookwho`.
-
-2.  **Start the Upload:**
-    *   On your repository page, click the **"Add file"** button and select **"Upload files"**.
-
-3.  **Upload Your Project Files:**
-    *   Open the `cookwho` folder on your Mac.
-    *   **Select all files and folders** inside `cookwho`.
-    *   **Drag all of them at once** and drop them into the box on the GitHub website.
-
-4.  **Commit the Files:**
-    *   Once the files are processed, scroll to the bottom of the page.
-    *   In the first text box, type: `Add project code and secrets config`.
-    *   Ensure the "Commit directly to the `main` branch" option is selected.
+    *   Click **"Add file"** > **"Upload files"**.
+    *   Drag everything from your `cookwho` folder on your desktop into the GitHub upload box.
+    *   For the commit message, type: `Create backend`.
     *   Click the green **"Commit changes"** button.
 
-This will trigger a new deployment. Because you added the secrets in Step 3, this deployment should succeed.
+4.  **Confirm the (Failed) Build**
+    *   Go to the **App Hosting** section in your Firebase Console.
+    *   You will see a **new backend card named `cookwho-app`** appear.
+    *   A build will start automatically. **This build will fail.** This is normal and expected. Wait for it to finish.
+
+You are now ready for Part 2.
+
+---
+
+### **PART 2: Add Secrets and Trigger the Successful Build**
+
+Now that the `cookwho-app` backend exists, we can give it the secrets it needs.
+
+1.  **Navigate to Secret Management**
+    *   In the Firebase App Hosting page, **click on the name `cookwho-app`** inside the new white card.
+    *   Click the **"Settings"** tab.
+    *   Find the section for **"Secret management"**.
+
+2.  **Add the Three Secrets**
+    *   You MUST add all 3 secrets: `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `GEMINI_API_KEY`.
+    *   For each one, click "Add secret", type the name exactly, and for the value, you can just type `test` for now.
+
+3.  **Trigger the Final, Successful Build**
+    *   Go back to your GitHub repository page.
+    *   Once again, click **"Add file"** > **"Upload files"**.
+    *   Drag the **exact same files and folders** from your `cookwho` folder on your desktop and drop them into the upload box.
+    *   For the commit message, type: `Add secrets and deploy`.
+    *   Click the green **"Commit changes"** button.
+
+This second upload triggers a new build. Because the secrets are now in place, this build will succeed. You can watch its status in the Firebase App Hosting dashboard. Once it says "Live", your app will be running.
