@@ -10,7 +10,7 @@ import {
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-import { useAuth, useFirestore, useStorage } from '@/firebase';
+import { useAuth, useFirestore, useStorage } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import {
   Form,

@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useStorage, useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
+import { useFirestore, useStorage } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import React, { useEffect, useState } from 'react';
 import { Edit, Loader2, Trash2, Utensils } from 'lucide-react';
@@ -546,5 +547,3 @@ export function CookEditItemForm({ item, onSuccess }: CookEditItemFormProps) {
     </ScrollArea>
   );
 }
-
-    

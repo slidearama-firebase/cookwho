@@ -8,8 +8,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { useAuth, useFirestore } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
 import { BookMarked, ChefHat, LogIn, LogOut, Utensils, User as UserIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';

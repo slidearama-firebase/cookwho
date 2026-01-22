@@ -4,7 +4,8 @@
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import React, { useState, useMemo, useEffect } from 'react';
 
-import { useCollection, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { type Restaurant } from '@/lib/types';
 import { calculateDistance } from '@/lib/utils';
 

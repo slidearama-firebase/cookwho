@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useStorage, useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
+import { useFirestore, useStorage } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -368,5 +369,3 @@ export function CookAddItemForm({ masterCategory, onSuccess }: CookAddItemFormPr
     </Form>
   );
 }
-
-    

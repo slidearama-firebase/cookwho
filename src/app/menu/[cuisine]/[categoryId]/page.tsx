@@ -5,7 +5,7 @@ import RestaurantTable from '@/components/restaurant-table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { MasterMenuCategory } from '@/lib/types';
 import { doc } from 'firebase/firestore';

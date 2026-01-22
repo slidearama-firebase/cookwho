@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useCollection, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { type CookMenuItem, type Restaurant, type User as AppUser, type BasketItem } from '@/lib/types';
 import { collection, doc } from 'firebase/firestore';
@@ -9,7 +10,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { notFound, useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Utensils, ChevronLeft, MapPin, Plus } from 'lucide-react';
+import { Star, Utensils, MapPin, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

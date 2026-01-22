@@ -20,7 +20,8 @@ import {
     SelectValue,
   } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { useCollection, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, where } from 'firebase/firestore';
 import { useMemo } from 'react';
 import { type MasterMenuCategory } from '@/lib/types';

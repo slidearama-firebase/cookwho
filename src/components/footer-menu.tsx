@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase/provider';
+import { useUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { signOut } from 'firebase/auth';
 import { BookMarked, ChefHat, LogIn, LogOut, Utensils, User as UserIcon } from 'lucide-react';

@@ -36,8 +36,9 @@ import {
   DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useFirestore, useStorage, useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirestore, useStorage } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import type { CookMenuItem } from '@/lib/types';
 import { deleteDoc, doc } from 'firebase/firestore';

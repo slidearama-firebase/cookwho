@@ -8,7 +8,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
+import { useFirestore } from '@/firebase/provider';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import type { CookMenuItem } from '@/lib/types';
 import { collection, query } from 'firebase/firestore';
 import { useMemo } from 'react';

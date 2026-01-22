@@ -1,6 +1,8 @@
+
 'use client';
 
-import { useCollection, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import type { MasterMenuCategory } from '@/lib/types';
 import { collection, query, where } from 'firebase/firestore';
 import { useMemo } from 'react';
