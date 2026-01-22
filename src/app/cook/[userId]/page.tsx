@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useCollection, useDoc, useFirestore } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
+import { useDoc } from '@/firebase/firestore/use-doc';
 import { type CookMenuItem, type Restaurant, type User as AppUser, type BasketItem } from '@/lib/types';
 import { collection, doc } from 'firebase/firestore';
 import { useMemo, useState, useEffect } from 'react';
