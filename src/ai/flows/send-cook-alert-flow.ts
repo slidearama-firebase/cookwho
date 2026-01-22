@@ -44,7 +44,7 @@ const sendCookAlertFlow = ai.defineFlow(
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
 
     if (!mailgunApiKey || !mailgunDomain) {
-        const errorMsg = 'Email sending is not configured. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN in your environment variables. See README.md for details.';
+        const errorMsg = 'Mailgun keys are not set in the production environment. Please ensure that the secrets have been created in Google Secret Manager AND that the App Hosting service account has the "Secret Manager Secret Accessor" role. See the README.md for detailed instructions.';
         console.error(`ERROR: ${errorMsg}`);
         return { success: false, message: errorMsg };
     }
