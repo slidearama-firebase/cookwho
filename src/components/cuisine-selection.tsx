@@ -1,11 +1,9 @@
-
 'use client';
 
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent } from './ui/card';
 import Link from 'next/link';
-import { Pizza, Soup, Utensils } from 'lucide-react';
 
 type Cuisine = 'English' | 'Indian' | 'Italian';
 
@@ -58,11 +56,6 @@ export function CuisineSelection() {
                   <h3 className="text-xl font-semibold font-headline">
                     {cuisine.title}
                   </h3>
-                  <div className="flex justify-around mt-2 text-muted-foreground">
-                    <Utensils className="h-5 w-5" />
-                    <Soup className="h-5 w-5" />
-                    <Pizza className="h-5 w-5" />
-                  </div>
                 </div>
               </CardContent>
             </Card>

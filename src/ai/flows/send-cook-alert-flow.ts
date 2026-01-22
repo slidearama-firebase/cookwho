@@ -43,17 +43,12 @@ const sendCookAlertFlow = ai.defineFlow(
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
 
-    if (!mailgunApiKey) {
-        const errorMsg = 'ERROR: MAILGUN_API_KEY is not set in your environment variables.';
-        console.error(errorMsg);
+    if (!mailgunApiKey || !mailgunDomain) {
+        const errorMsg = 'Email sending is not configured. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN in your environment variables. See README.md for details.';
+        console.error(`ERROR: ${errorMsg}`);
         return { success: false, message: errorMsg };
     }
-    if (!mailgunDomain) {
-        const errorMsg = 'ERROR: MAILGUN_DOMAIN is not set in your environment variables.';
-        console.error(errorMsg);
-        return { success: false, message: errorMsg };
-    }
-
+    
     const fromEmail = `CookWho Alerts <alerts@${mailgunDomain}>`;
     const subject = `Cook Alert! Potential Sale for "${itemName}"`;
     const emailBody = `
@@ -83,7 +78,11 @@ const sendCookAlertFlow = ai.defineFlow(
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Mailgun API error (${response.status}): ${errorBody}`);
+        let friendlyMessage = `Mailgun API error (${response.status}): ${errorBody}`;
+        if (response.status === 403) {
+            friendlyMessage += " This often means you've hit a sending limit on your Mailgun plan. Please check your Mailgun dashboard for usage details."
+        }
+        throw new Error(friendlyMessage);
       }
 
       const responseJson: any = await response.json();
@@ -92,8 +91,9 @@ const sendCookAlertFlow = ai.defineFlow(
       return { success: true, message: successMessage };
         
     } catch (error: any) {
-        console.error('ERROR: Failed to send email alert.', error.message || error);
-        return { success: false, message: 'Failed to send email alert.' };
+        const errorMessage = `Failed to send email alert. Reason: ${error.message || 'Unknown error'}`;
+        console.error(`ERROR: ${errorMessage}`);
+        return { success: false, message: errorMessage };
     }
   }
 );

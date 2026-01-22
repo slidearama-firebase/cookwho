@@ -81,16 +81,9 @@ export default function RestaurantTable({
 
   const restaurantsQuery = useMemo(() => {
     if (!firestore) return null;
-    let q = query(collection(firestore, 'restaurants'));
-    
-    // If we are looking for a specific dish, we only care about available restaurants that have that item.
-    // The check for the item is done in a separate effect.
-    if (masterCategoryId) {
-      q = query(q, where('isAvailable', '==', true));
-    }
-
-    return q;
-  }, [firestore, masterCategoryId]);
+    // We only want to show restaurants that are marked as available.
+    return query(collection(firestore, 'restaurants'), where('isAvailable', '==', true));
+  }, [firestore]);
   
   const { data: allRestaurants, loading: restaurantsLoading } =
     useCollection<Restaurant>(restaurantsQuery);
@@ -105,7 +98,8 @@ export default function RestaurantTable({
         return;
       }
       
-      const availableRestaurants = allRestaurants?.filter(r => r.isAvailable);
+      // `allRestaurants` is already filtered by `isAvailable: true` from the query
+      const availableRestaurants = allRestaurants;
 
       if (!availableRestaurants || availableRestaurants.length === 0) {
         setRestaurantsWithItem([]);
@@ -237,7 +231,7 @@ export default function RestaurantTable({
         <AlertDescription>
           {masterCategoryId
             ? 'No restaurants are currently offering this dish within the selected distance.'
-            : 'Your `restaurants` collection in Firestore is empty or none are available. Please add some documents.'}
+            : 'No available restaurants were found. Please check back later or try increasing the distance.'}
         </AlertDescription>
       </Alert>
     );
