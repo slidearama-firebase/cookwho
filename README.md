@@ -62,38 +62,67 @@ Your API key is now secured and can only be used from your approved domains.
 
 ## 3. Configure Email Alerts for Cooks (Mailgun)
 
-To resolve the `401 Forbidden` error and enable the email alert feature for cooks, please follow these consolidated steps carefully.
+To enable the email alert feature for cooks, please follow these steps carefully.
 
 **Step 1: Sign up for Mailgun and Add a Domain**
 *   Go to [Mailgun.com](https://www.mailgun.com/) and sign up for an account.
 *   When adding your domain, use a **subdomain** of `cookwho.com`, for example `mg.cookwho.com`.
-*   **Crucially, ensure you select the US region when prompted**, as your Mailgun account is based in the US.
+*   **Crucially, ensure you select the US region when prompted**, as this must match your account's home region.
 
 **Step 2: Verify Your DNS Records**
 *   Mailgun will provide you with a list of DNS records (`TXT`, `MX`, `CNAME`). You must add these to your domain registrar's settings.
 *   After adding the records, return to your Mailgun dashboard. Wait until Mailgun shows a "Verified" status for each record. This can take some time.
 *   **If records are "Unverified":** Carefully double-check the `Host` and `Value` for each record. For the `Host` field, some DNS providers require you to enter only the subdomain part. For example, for the host `pic._domainkey.mg.cookwho.com`, you might only need to enter `pic._domainkey.mg`.
 
-**Step 3: Generate a New Private API Key**
+**Step 3: Generate a Private API Key**
 *   In your Mailgun dashboard, navigate to **Settings -> API Keys**.
-*   To ensure you are using a valid key, we recommend creating a new one. Click the **Create API key** button.
+*   Click the **Create API key** button.
 *   Give the key a descriptive name (e.g., "CookWho App Key").
-*   A new **Private API Key** will be generated. It starts with `key-...`. **Copy this new key immediately**, as you will not be able to see it again.
+*   A new **Private API Key** will be generated. It starts with `key-...`. **Copy this key immediately**, as you will not be able to see it again.
 
-**Step 4: Add Keys to Your `.env` File**
-*   In this development environment, open the file named `.env` (or `.env.local`).
-*   Update the file with your Mailgun domain and your **newly generated** Private API Key.
+**Step 4: Add Keys for Local Development**
+*   In this development environment, open the file named `.env` (or create it if it doesn't exist).
+*   Add your Mailgun domain and your Private API Key to this file. **This is for your local machine only.**
 
 ```
 MAILGUN_API_KEY=YOUR_NEW_PRIVATE_API_KEY_FROM_MAILGUN
 MAILGUN_DOMAIN=mg.cookwho.com
 ```
 
-**Step 5: Restart the Application Server**
-*   **CRITICAL STEP:** To load the new environment variables from your `.env` file, the development server **must be restarted**.
-*   The server should restart automatically when you save the `.env` file. If the error persists, it means the server did not load the new key. Please **manually stop and restart the development server** to be certain.
+**Step 5: Set Production Environment Variables (CRITICAL FOR LIVE SITE)**
 
-**Step 6: Understand Mailgun's Free Plan Limits**
+Your live site on Firebase App Hosting cannot access the `.env` file. To fix the "MAILGUN_API_KEY is not set" error on your live site, you must securely provide these keys to the production environment using Google Secret Manager.
+
+*   **1. Go to Secret Manager:**
+    *   Open the [Google Cloud Secret Manager](https://console.cloud.google.com/security/secret-manager).
+    *   Ensure your project (`chefbase-ukv2y`) is selected at the top.
+
+*   **2. Create the MAILGUN_API_KEY Secret:**
+    *   Click **+ CREATE SECRET** at the top.
+    *   **Name:** Enter `MAILGUN_API_KEY`.
+    *   **Secret value:** Paste your Mailgun Private API Key (the one starting with `key-...`).
+    *   Leave "Replication" as is, and click **CREATE SECRET**.
+
+*   **3. Create the MAILGUN_DOMAIN Secret:**
+    *   Click **+ CREATE SECRET** again.
+    *   **Name:** Enter `MAILGUN_DOMAIN`.
+    *   **Secret value:** Paste your Mailgun domain (e.g., `mg.cookwho.com`).
+    *   Click **CREATE SECRET**.
+    
+*   **4. Grant Access to Your App (Do this ONCE after creating both secrets):**
+    *   On the Secret Manager page, check the boxes next to both `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`.
+    *   In the right-hand permissions panel, click **ADD PRINCIPAL**.
+    *   In the "New principals" field, paste the following service account email: `78058059050-compute@developer.gserviceaccount.com`
+    *   For the role, select `Secret Manager Secret Accessor`.
+    *   Click **SAVE**.
+
+**Step 6: Restart the Local Server**
+*   To load the new environment variables from your `.env` file for local testing, the development server **must be restarted**. The server should restart automatically when you save the `.env` file. If not, please **manually stop and restart** it.
+
+**Step 7: Redeploy to Production**
+*   After creating the secrets in Google Secret Manager, you must **redeploy your application** for the live site to use them.
+
+**Step 8: Understand Mailgun's Free Plan Limits**
 *   The free tier of Mailgun has limits on how many emails you can send per hour and per day. If you test the email feature multiple times in a short period, you might see a `403 Forbidden` error in the logs. This is normal and means you've hit a temporary rate limit. You can check your sending limits and logs in the Mailgun dashboard.
 
 ---
