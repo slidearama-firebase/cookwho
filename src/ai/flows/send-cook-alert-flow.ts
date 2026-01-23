@@ -39,11 +39,34 @@ const sendCookAlertFlow = ai.defineFlow(
   },
   async ({ cookEmail, cookDisplayName, itemName }) => {
     
-    // Validate environment variables
+    // Super-Detailed Diagnostic Logging
+    console.log('--- BEGIN FORENSIC ENVIRONMENT DIAGNOSTICS ---');
+    const allEnvKeys = Object.keys(process.env);
+    const mailgunRelatedKeys = allEnvKeys.filter(key => key.toUpperCase().includes('MAILGUN'));
+    
+    console.log('Searching for any environment variables containing "MAILGUN"...');
+    console.log('Found potential Mailgun-related env keys:', mailgunRelatedKeys);
+
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
 
-    if (!mailgunApiKey || !mailgunDomain) {
+    console.log(`Value of process.env.MAILGUN_API_KEY is of type: ${typeof mailgunApiKey}`);
+    if (mailgunApiKey) {
+        console.log(`Value of process.env.MAILGUN_API_KEY has length: ${mailgunApiKey.length}`);
+    } else {
+        console.log('Value of process.env.MAILGUN_API_KEY is falsy (undefined, null, or empty string).');
+    }
+
+    console.log(`Value of process.env.MAILGUN_DOMAIN is of type: ${typeof mailgunDomain}`);
+    if (mailgunDomain) {
+        console.log(`Value of process.env.MAILGUN_DOMAIN has length: ${mailgunDomain.length}`);
+    } else {
+        console.log('Value of process.env.MAILGUN_DOMAIN is falsy (undefined, null, or empty string).');
+    }
+    console.log('--- END FORENSIC ENVIRONMENT DIAGNOSTICS ---');
+
+
+    if (!mailgunApiKey || !mailgunDomain || mailgunApiKey.trim() === '' || mailgunDomain.trim() === '') {
         const errorMsg = 'Mailgun keys are not set in the production environment. Please ensure that the secrets have been created in Google Secret Manager AND that the App Hosting service account has the "Secret Manager Secret Accessor" role. See the README.md for detailed instructions.';
         console.error(`ERROR: ${errorMsg}`);
         return { success: false, message: errorMsg };
