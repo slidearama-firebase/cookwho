@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore } from '@/firebase/provider';
@@ -30,7 +29,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from '@/components/ui/alert-dialog';
-import { sendCookAlert } from '@/ai/flows/send-cook-alert-flow';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CookPage() {
@@ -57,7 +55,6 @@ export default function CookPage() {
         },
         (error) => {
           console.error("Error getting location:", error);
-          // Handle error if needed, for now we just won't show distance
         }
       );
     }
@@ -90,7 +87,6 @@ export default function CookPage() {
     return menuItems;
   }, [menuItems, categoryId]);
 
-
   const loading = userLoading || restaurantLoading || menuItemsLoading;
 
   const distance = useMemo(() => {
@@ -100,7 +96,7 @@ export default function CookPage() {
         browserLocation.longitude,
         restaurant.latitude,
         restaurant.longitude
-      ) / 1000; // to km
+      ) / 1000;
     }
     return null;
   }, [browserLocation, restaurant]);
@@ -116,12 +112,17 @@ export default function CookPage() {
     };
     addItem(basketItem);
   
-    // Fire-and-forget the alert without awaiting it.
-    sendCookAlert({
-      cookEmail: user.email,
-      cookDisplayName: user.displayName,
-      itemName: item.name,
+    // Call the API route instead of the server action directly
+    fetch('/api/send-cook-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cookEmail: user.email,
+        cookDisplayName: user.displayName,
+        itemName: item.name,
+      }),
     })
+      .then(res => res.json())
       .then(response => {
         if (response.success) {
           console.log("Cook alert sent successfully:", response.message);
@@ -137,11 +138,9 @@ export default function CookPage() {
   const handleAddItemClick = (item: CookMenuItem) => {
     if (!restaurant) return;
   
-    // Check if basket is empty or if the item is from the same restaurant
     if (basket.length === 0 || basket[0].restaurantId === restaurant.id) {
       processAddItem(item);
     } else {
-      // If from a different restaurant, show confirmation dialog
       setItemToAdd(item);
       setShowClearBasketDialog(true);
     }
