@@ -9,4 +9,8 @@ runConfig:
 # at runtime.
 secrets:
   - secret: MAILGUN_API_KEY
+    availability:
+      - runtime
   - secret: MAILGUN_DOMAIN
+    availability:
+      - runtime
