@@ -8,3 +8,4 @@ env:
     secret: MAILGUN_API_KEY
   - variable: MAILGUN_DOMAIN
     secret: MAILGUN_DOMAIN
+    
