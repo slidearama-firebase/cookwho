@@ -3,12 +3,10 @@
 backendId: cookwho
 runConfig:
   maxInstances: 1
-env:
-  - variable: MAILGUN_API_KEY
-    secret: MAILGUN_API_KEY
+secrets:
+  - secret: MAILGUN_API_KEY
     availability:
       - runtime
-  - variable: MAILGUN_DOMAIN
-    secret: MAILGUN_DOMAIN
+  - secret: MAILGUN_DOMAIN
     availability:
       - runtime
