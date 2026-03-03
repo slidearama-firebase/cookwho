@@ -2,8 +2,3 @@
 # https://firebase.google.com/docs/app-hosting/configure
 runConfig:
   maxInstances: 1
-env:
-  - variable: MAILGUN_API_KEY
-    secret: projects/78058059050/secrets/MAILGUN_API_KEY
-  - variable: MAILGUN_DOMAIN
-    secret: projects/78058059050/secrets/MAILGUN_DOMAIN
