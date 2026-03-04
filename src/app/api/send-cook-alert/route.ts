@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import fetch from 'node-fetch';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin if not already initialized
+// Initialize Firebase Admin using Application Default Credentials
+// (automatically provided by Firebase App Hosting)
 if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID || 'chefbase-ukv2y',
-    }),
-  });
+  initializeApp();
 }
 
 export async function POST(req: Request) {
