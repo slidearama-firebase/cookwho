@@ -30,6 +30,7 @@ import {
     AlertDialogTitle,
   } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { KitchenConfirmationPopup } from '@/components/kitchen-confirmation-popup';
 
 export default function CookPage() {
   const params = useParams();
@@ -43,6 +44,8 @@ export default function CookPage() {
   const { basket, addItem, clearBasket } = useBasket();
   const [showClearBasketDialog, setShowClearBasketDialog] = useState(false);
   const [itemToAdd, setItemToAdd] = useState<CookMenuItem | null>(null);
+  const [alertId, setAlertId] = useState<string | null>(null);
+  const [showKitchenPopup, setShowKitchenPopup] = useState(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -112,13 +115,14 @@ export default function CookPage() {
     };
     addItem(basketItem);
   
-    // Call the API route instead of the server action directly
+    // Call the API route — now also passes cookId so we can create the alert in Firestore
     fetch('/api/send-cook-alert', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         cookEmail: user.email,
         cookDisplayName: user.displayName,
+        cookId: userId,
         itemName: item.name,
       }),
     })
@@ -126,6 +130,9 @@ export default function CookPage() {
       .then(response => {
         if (response.success) {
           console.log("Cook alert sent successfully:", response.message);
+          // Show the kitchen confirmation popup
+          setAlertId(response.alertId);
+          setShowKitchenPopup(true);
         } else {
           console.error("Failed to send cook alert:", response.message);
         }
@@ -183,6 +190,16 @@ export default function CookPage() {
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+
+        {/* Kitchen Confirmation Popup */}
+        {showKitchenPopup && alertId && (
+          <KitchenConfirmationPopup
+            alertId={alertId}
+            cookDisplayName={displayName}
+            onDismiss={() => setShowKitchenPopup(false)}
+          />
+        )}
+
         <AlertDialog open={showClearBasketDialog} onOpenChange={setShowClearBasketDialog}>
             <AlertDialogContent>
                 <AlertDialogHeader>
