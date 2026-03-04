@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin if not already initialized
+// Initialize Firebase Admin using Application Default Credentials
+// (automatically provided by Firebase App Hosting)
 if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID || 'chefbase-ukv2y',
-    }),
-  });
+  initializeApp();
 }
 
 export async function GET(req: Request) {
@@ -68,7 +65,6 @@ export async function GET(req: Request) {
     const sevenMinutes = 7 * 60 * 1000;
 
     if (createdAt && (now.getTime() - createdAt.getTime()) > sevenMinutes) {
-      // Mark as expired and turn off cook's isAvailable toggle
       await alertRef.update({ status: 'expired' });
       await db.collection('restaurants').doc(cookId).update({ isAvailable: false });
 
@@ -89,7 +85,6 @@ export async function GET(req: Request) {
     await alertRef.update({ status: 'confirmed', confirmedAt: new Date() });
     await db.collection('restaurants').doc(cookId).update({ isAvailable: true });
 
-    // Redirect to login page
     return new Response(
       `<html>
         <body style="font-family: sans-serif; text-align: center; padding: 40px;">
