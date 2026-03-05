@@ -4,7 +4,6 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin using Application Default Credentials
-// (automatically provided by Firebase App Hosting)
 if (!getApps().length) {
   initializeApp();
 }
@@ -24,11 +23,30 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create an alert document in Firestore
     const db = getFirestore();
+
+    // Check if cook already has a live paid order — if so, skip the alert
+    const liveOrdersSnapshot = await db
+      .collection('orders')
+      .where('cookId', '==', cookId)
+      .where('status', '==', 'live')
+      .limit(1)
+      .get();
+
+    if (!liveOrdersSnapshot.empty) {
+      console.log(`INFO: Cook ${cookId} has a live order — skipping alert email.`);
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Cook is already active with a live order — no alert needed.',
+        alertId: null
+      });
+    }
+
+    // No live order — create an alert document in Firestore
     const alertRef = await db.collection('cookAlerts').add({
       cookId,
       cookEmail,
+      cookDisplayName,
       itemName,
       status: 'pending',
       createdAt: new Date(),
@@ -38,20 +56,20 @@ export async function POST(req: Request) {
     const confirmUrl = `https://cookwho.com/api/confirm-kitchen?cookId=${cookId}&alertId=${alertId}`;
 
     const fromEmail = `CookWho Alerts <alerts@${mailgunDomain}>`;
-    const subject = `Cook Alert! Potential Sale for "${itemName}"`;
+    const subject = `⚡ Quick! You've got 2 minutes to grab a sale!`;
     const emailBody = `
       <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #f97316;">🍳 Kitchen Alert!</h2>
+        <h2 style="color: #f97316;">🍳 You've Got a Hungry Customer!</h2>
         <p>Hi ${cookDisplayName || 'Cook'},</p>
-        <p>Great news! A customer has just added your dish <strong>"${itemName}"</strong> to their basket.</p>
-        <p>Please confirm your kitchen is open and ready within <strong>7 minutes</strong> or the order will be cancelled.</p>
+        <p>A customer has just added your dish <strong>"${itemName}"</strong> to their basket and they're ready to order!</p>
+        <p style="font-size: 18px; font-weight: bold; color: #ef4444;">⏰ You have 2 minutes to confirm — don't miss this sale!</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${confirmUrl}" 
              style="display: inline-block; padding: 16px 32px; background: #f97316; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
-            ✅ Confirm My Kitchen is Open
+            ✅ Yes! My Kitchen is Open!
           </a>
         </div>
-        <p style="color: #888; font-size: 12px;">This link expires in 7 minutes. If you don't confirm in time your kitchen will be marked as closed.</p>
+        <p style="color: #888; font-size: 12px;">If you don't confirm within 2 minutes your kitchen will be automatically marked as closed to protect the customer.</p>
         <p>Best,</p>
         <p>The CookWho Team</p>
       </div>
