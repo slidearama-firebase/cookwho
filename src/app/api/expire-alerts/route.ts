@@ -9,9 +9,9 @@ if (!getApps().length) {
 }
 
 // This route is called by a Cloud Scheduler job every 2 minutes.
-// It finds any pending cook alerts older than 7 minutes,
+// It finds any pending cook alerts older than 2 minutes,
 // marks them as expired, turns off the cook's isAvailable toggle,
-// and sends the cook a notification email.
+// clears the customer's basket, and sends the cook a notification email.
 export async function GET(req: Request) {
   try {
     // Verify this request is from Cloud Scheduler using a secret token
@@ -25,13 +25,13 @@ export async function GET(req: Request) {
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
 
     const db = getFirestore();
-    const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000);
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
-    // Find all pending alerts older than 7 minutes
+    // Find all pending alerts older than 2 minutes
     const expiredAlertsSnapshot = await db
       .collection('cookAlerts')
       .where('status', '==', 'pending')
-      .where('createdAt', '<=', Timestamp.fromDate(sevenMinutesAgo))
+      .where('createdAt', '<=', Timestamp.fromDate(twoMinutesAgo))
       .get();
 
     if (expiredAlertsSnapshot.empty) {
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
 
     for (const alertDoc of expiredAlertsSnapshot.docs) {
       const alertData = alertDoc.data();
-      const { cookId, cookEmail, cookDisplayName } = alertData;
+      const { cookId, cookEmail, cookDisplayName, customerId } = alertData;
 
       // Mark alert as expired
       batch.update(alertDoc.ref, { status: 'expired', expiredAt: new Date() });
@@ -55,9 +55,32 @@ export async function GET(req: Request) {
       const restaurantRef = db.collection('restaurants').doc(cookId);
       batch.update(restaurantRef, { isAvailable: false });
 
+      // Clear the customer's basket by updating their basket document
+      if (customerId) {
+        const basketRef = db.collection('baskets').doc(customerId);
+        batch.set(basketRef, { 
+          items: [], 
+          clearedAt: new Date(),
+          clearedReason: 'cook_unavailable'
+        }, { merge: true });
+      }
+
+      // Write a notification document for the customer so the UI can react
+      if (customerId) {
+        const notifRef = db.collection('customerNotifications').doc(customerId);
+        batch.set(notifRef, {
+          type: 'kitchen_closed',
+          cookId,
+          cookDisplayName: cookDisplayName || 'Your cook',
+          message: `Sorry, ${cookDisplayName || 'your cook'}'s kitchen is currently closed. Your basket has been cleared.`,
+          createdAt: new Date(),
+          read: false,
+        }, { merge: false });
+      }
+
       console.log(`INFO: Expiring alert ${alertDoc.id} for cook ${cookId}`);
 
-      // Send notification email to cook if we have their email
+      // Send notification email to cook
       if (cookEmail && mailgunApiKey && mailgunDomain) {
         const fromEmail = `CookWho Alerts <alerts@${mailgunDomain}>`;
         const subject = `Your CookWho Kitchen Has Been Marked as Closed`;
@@ -66,8 +89,8 @@ export async function GET(req: Request) {
             <h2 style="color: #ef4444;">⚠️ Kitchen Marked as Closed</h2>
             <p>Hi ${cookDisplayName || 'Cook'},</p>
             <p>Your kitchen on CookWho is <strong>no longer active</strong>.</p>
-            <p>A customer placed an order for <strong>"${alertData.itemName}"</strong> but you did not confirm your kitchen was open within the 7 minute window.</p>
-            <p>To protect our customers, your kitchen has been automatically marked as closed.</p>
+            <p>A customer was waiting to order <strong>"${alertData.itemName}"</strong> but you did not confirm your kitchen was open within the 2 minute window.</p>
+            <p>To protect our customers, your kitchen has been automatically marked as closed and their basket has been cleared.</p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="https://cookwho.com" 
                  style="display: inline-block; padding: 16px 32px; background: #f97316; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
@@ -97,11 +120,12 @@ export async function GET(req: Request) {
             },
             body: body,
           }
-        ).then(res => {
+        ).then(async res => {
           if (res.ok) {
             console.log(`INFO: Expiry notification sent to ${cookEmail}`);
           } else {
-            console.error(`ERROR: Failed to send expiry email to ${cookEmail}`);
+            const err = await res.text();
+            console.error(`ERROR: Failed to send expiry email to ${cookEmail}: ${err}`);
           }
         });
 
