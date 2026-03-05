@@ -4,9 +4,9 @@ import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { type CookMenuItem, type Restaurant, type User as AppUser, type BasketItem } from '@/lib/types';
-import { collection, doc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { notFound, useRouter, useParams, useSearchParams } from 'next/navigation';
+import { notFound, useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, Utensils, MapPin, Plus } from 'lucide-react';
@@ -19,7 +19,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { calculateDistance } from '@/lib/utils';
 import { ExpandableText } from '@/components/expandable-text';
 import { useBasket } from '@/context/basket-context';
-import { useAuth } from '@/context/auth-context';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -38,14 +37,14 @@ export default function CookPage() {
   const userId = params.userId as string;
   const categoryId = searchParams.get('category');
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
   const [browserLocation, setBrowserLocation] = useState<{ latitude: number; longitude: number; } | null>(null);
   const { basket, addItem, clearBasket } = useBasket();
   const [showClearBasketDialog, setShowClearBasketDialog] = useState(false);
   const [itemToAdd, setItemToAdd] = useState<CookMenuItem | null>(null);
+  const [alertId, setAlertId] = useState<string | null>(null);
   const alertSentRef = useRef(false);
+  const alertListenerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -63,33 +62,37 @@ export default function CookPage() {
     }
   }, []);
 
-  // Listen for kitchen closed notification for this customer
+  // When we have an alertId, listen to it in real time
+  // This works for ANY customer — logged in or not
   useEffect(() => {
-    if (!firestore || !currentUser?.uid) return;
+    if (!firestore || !alertId) return;
 
-    const notifRef = doc(firestore, 'customerNotifications', currentUser.uid);
-    const unsubscribe = onSnapshot(notifRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data?.type === 'kitchen_closed' && !data?.read) {
-          // Clear the basket
-          clearBasket();
+    // Clean up any previous listener
+    if (alertListenerRef.current) {
+      alertListenerRef.current();
+    }
 
-          // Show toast notification to customer
-          toast({
-            title: "Kitchen Unavailable",
-            description: data.message,
-            variant: "destructive",
-          });
+    const alertRef = doc(firestore, 'cookAlerts', alertId);
+    const unsubscribe = onSnapshot(alertRef, (snapshot) => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data();
 
-          // Delete the notification so it doesn't fire again
-          deleteDoc(notifRef);
-        }
+      if (data?.status === 'expired') {
+        // Kitchen closed — clear basket and notify customer
+        clearBasket();
+        alertSentRef.current = false; // Allow new alert if they try another cook
+        setAlertId(null);
+        toast({
+          title: "Kitchen Unavailable",
+          description: `Sorry, ${data.cookDisplayName || 'this cook'}'s kitchen is currently closed. Your basket has been cleared. Please try another cook.`,
+          variant: "destructive",
+        });
       }
     });
 
+    alertListenerRef.current = unsubscribe;
     return () => unsubscribe();
-  }, [firestore, currentUser, clearBasket, toast]);
+  }, [firestore, alertId, clearBasket, toast]);
 
   const userRef = useMemo(() => {
     if (!firestore) return null;
@@ -143,7 +146,7 @@ export default function CookPage() {
     };
     addItem(basketItem);
 
-    // Only send alert once per cook page visit
+    // Only send one alert per cook page visit
     if (alertSentRef.current) return;
     alertSentRef.current = true;
   
@@ -155,16 +158,14 @@ export default function CookPage() {
         cookEmail: user.email,
         cookDisplayName: user.displayName,
         cookId: userId,
-        customerId: currentUser?.uid,
         itemName: item.name,
       }),
     })
       .then(res => res.json())
       .then(response => {
-        if (response.success) {
-          console.log("Cook alert sent successfully:", response.message);
-        } else {
-          console.error("Failed to send cook alert:", response.message);
+        if (response.success && response.alertId) {
+          console.log("Cook alert sent, listening for response...");
+          setAlertId(response.alertId);
         }
       })
       .catch(error => {
