@@ -4,8 +4,8 @@ import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { type CookMenuItem, type Restaurant, type User as AppUser, type BasketItem } from '@/lib/types';
-import { collection, doc } from 'firebase/firestore';
-import { useMemo, useState, useEffect } from 'react';
+import { collection, doc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { notFound, useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { calculateDistance } from '@/lib/utils';
 import { ExpandableText } from '@/components/expandable-text';
 import { useBasket } from '@/context/basket-context';
+import { useAuth } from '@/context/auth-context';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,7 +31,6 @@ import {
     AlertDialogTitle,
   } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { KitchenConfirmationPopup } from '@/components/kitchen-confirmation-popup';
 
 export default function CookPage() {
   const params = useParams();
@@ -40,12 +40,12 @@ export default function CookPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   const [browserLocation, setBrowserLocation] = useState<{ latitude: number; longitude: number; } | null>(null);
   const { basket, addItem, clearBasket } = useBasket();
   const [showClearBasketDialog, setShowClearBasketDialog] = useState(false);
   const [itemToAdd, setItemToAdd] = useState<CookMenuItem | null>(null);
-  const [alertId, setAlertId] = useState<string | null>(null);
-  const [showKitchenPopup, setShowKitchenPopup] = useState(false);
+  const alertSentRef = useRef(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -62,6 +62,34 @@ export default function CookPage() {
       );
     }
   }, []);
+
+  // Listen for kitchen closed notification for this customer
+  useEffect(() => {
+    if (!firestore || !currentUser?.uid) return;
+
+    const notifRef = doc(firestore, 'customerNotifications', currentUser.uid);
+    const unsubscribe = onSnapshot(notifRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.type === 'kitchen_closed' && !data?.read) {
+          // Clear the basket
+          clearBasket();
+
+          // Show toast notification to customer
+          toast({
+            title: "Kitchen Unavailable",
+            description: data.message,
+            variant: "destructive",
+          });
+
+          // Delete the notification so it doesn't fire again
+          deleteDoc(notifRef);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firestore, currentUser, clearBasket, toast]);
 
   const userRef = useMemo(() => {
     if (!firestore) return null;
@@ -114,8 +142,12 @@ export default function CookPage() {
       restaurantName: restaurant.name,
     };
     addItem(basketItem);
+
+    // Only send alert once per cook page visit
+    if (alertSentRef.current) return;
+    alertSentRef.current = true;
   
-    // Call the API route — now also passes cookId so we can create the alert in Firestore
+    // Fire alert silently in background — customer is not interrupted
     fetch('/api/send-cook-alert', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,6 +155,7 @@ export default function CookPage() {
         cookEmail: user.email,
         cookDisplayName: user.displayName,
         cookId: userId,
+        customerId: currentUser?.uid,
         itemName: item.name,
       }),
     })
@@ -130,9 +163,6 @@ export default function CookPage() {
       .then(response => {
         if (response.success) {
           console.log("Cook alert sent successfully:", response.message);
-          // Show the kitchen confirmation popup
-          setAlertId(response.alertId);
-          setShowKitchenPopup(true);
         } else {
           console.error("Failed to send cook alert:", response.message);
         }
@@ -190,16 +220,6 @@ export default function CookPage() {
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-
-        {/* Kitchen Confirmation Popup */}
-        {showKitchenPopup && alertId && (
-          <KitchenConfirmationPopup
-            alertId={alertId}
-            cookDisplayName={displayName}
-            onDismiss={() => setShowKitchenPopup(false)}
-          />
-        )}
-
         <AlertDialog open={showClearBasketDialog} onOpenChange={setShowClearBasketDialog}>
             <AlertDialogContent>
                 <AlertDialogHeader>
