@@ -8,13 +8,11 @@ if (!getApps().length) {
   initializeApp();
 }
 
-// This route is called by a Cloud Scheduler job every 2 minutes.
-// It finds any pending cook alerts older than 2 minutes,
-// marks them as expired, turns off the cook's isAvailable toggle,
-// clears the customer's basket, and sends the cook a notification email.
+// Called by Cloud Scheduler every 2 minutes.
+// Finds pending alerts older than 2 minutes, marks them expired,
+// turns off cook's isAvailable toggle, and emails the cook.
 export async function GET(req: Request) {
   try {
-    // Verify this request is from Cloud Scheduler using a secret token
     const { searchParams } = new URL(req.url);
     const token = searchParams.get('token');
     if (token !== process.env.CRON_SECRET) {
@@ -46,7 +44,7 @@ export async function GET(req: Request) {
 
     for (const alertDoc of expiredAlertsSnapshot.docs) {
       const alertData = alertDoc.data();
-      const { cookId, cookEmail, cookDisplayName, customerId } = alertData;
+      const { cookId, cookEmail, cookDisplayName } = alertData;
 
       // Mark alert as expired
       batch.update(alertDoc.ref, { status: 'expired', expiredAt: new Date() });
@@ -54,29 +52,6 @@ export async function GET(req: Request) {
       // Turn off cook's isAvailable toggle
       const restaurantRef = db.collection('restaurants').doc(cookId);
       batch.update(restaurantRef, { isAvailable: false });
-
-      // Clear the customer's basket by updating their basket document
-      if (customerId) {
-        const basketRef = db.collection('baskets').doc(customerId);
-        batch.set(basketRef, { 
-          items: [], 
-          clearedAt: new Date(),
-          clearedReason: 'cook_unavailable'
-        }, { merge: true });
-      }
-
-      // Write a notification document for the customer so the UI can react
-      if (customerId) {
-        const notifRef = db.collection('customerNotifications').doc(customerId);
-        batch.set(notifRef, {
-          type: 'kitchen_closed',
-          cookId,
-          cookDisplayName: cookDisplayName || 'Your cook',
-          message: `Sorry, ${cookDisplayName || 'your cook'}'s kitchen is currently closed. Your basket has been cleared.`,
-          createdAt: new Date(),
-          read: false,
-        }, { merge: false });
-      }
 
       console.log(`INFO: Expiring alert ${alertDoc.id} for cook ${cookId}`);
 
