@@ -10,7 +10,8 @@ if (!getApps().length) {
 
 export async function POST(req: Request) {
   try {
-    const { cookEmail, cookDisplayName, cookId, itemName } = await req.json();
+    const { cookEmail, cookDisplayName: rawDisplayName, cookId, itemName } = await req.json();
+    const cookDisplayName = rawDisplayName || 'Cook';
 
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
