@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,7 +11,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
-import { BookMarked, ChefHat, LogIn, LogOut, Utensils, User as UserIcon } from 'lucide-react';
+import { BookMarked, ChefHat, LayoutDashboard, LogIn, LogOut, Utensils, User as UserIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { AuthForm } from './auth-form';
 import { Button } from './ui/button';
@@ -43,6 +42,7 @@ import { CookMenuDialog } from './cook-menu-dialog';
 import { ViewMenuDialog } from './view-menu-dialog';
 import { CookAccountDialog } from './cook-account-dialog';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export function UserAuth() {
   const { user: authUser, loading: authLoading } = useUser();
@@ -71,7 +71,6 @@ export function UserAuth() {
   }, [firestore, authUser, userProfile?.isCook]);
 
   const { data: restaurant, loading: restaurantLoading } = useDoc<Restaurant>(restaurantDocRef);
-
 
   const handleSignOut = () => {
     signOut(auth);
@@ -104,6 +103,24 @@ export function UserAuth() {
         {/* Desktop-only icons for Cook */}
         {isCook && restaurant && (
             <div className="hidden md:flex items-center gap-2">
+
+                {/* Dashboard button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="xl" asChild>
+                        <Link href="/dashboard">
+                          <LayoutDashboard className='h-6 w-6' />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cook Dashboard</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {/* Cook Account button */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -117,6 +134,7 @@ export function UserAuth() {
                   </Tooltip>
                 </TooltipProvider>
 
+                {/* My Menu button */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="xl">
@@ -172,10 +190,7 @@ export function UserAuth() {
             <div className='hidden md:block'>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="xl"
-                    >
+                    <Button variant="outline" size="xl">
                       <BookMarked className='h-6 w-6' />
                     </Button>
                 </DropdownMenuTrigger>
@@ -203,13 +218,8 @@ export function UserAuth() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="relative h-12 w-12 rounded-full">
                 <Avatar className="h-12 w-12 border-2 border-foreground">
-                  <AvatarImage
-                    src={avatarSrc || ''}
-                    alt={avatarAlt}
-                  />
-                  <AvatarFallback>
-                    {avatarFallback}
-                  </AvatarFallback>
+                  <AvatarImage src={avatarSrc || ''} alt={avatarAlt} />
+                  <AvatarFallback>{avatarFallback}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -230,17 +240,17 @@ export function UserAuth() {
               <DropdownMenuSeparator />
               {userProfile.isAdmin && (
                 <>
-                 <DropdownMenuSub>
+                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <BookMarked className="mr-2 h-4 w-4" />
                       <span>Master Menu</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => openAdminDialog('English')}>English</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openAdminDialog('Indian')}>Indian</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openAdminDialog('Italian')}>Italian</DropdownMenuItem>
-                    </DropdownMenuSubContent>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => openAdminDialog('English')}>English</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openAdminDialog('Indian')}>Indian</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openAdminDialog('Italian')}>Italian</DropdownMenuItem>
+                      </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
