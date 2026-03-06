@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { signOut } from 'firebase/auth';
-import { BookMarked, ChefHat, LogIn, LogOut, Utensils, User as UserIcon } from 'lucide-react';
+import { BookMarked, ChefHat, LogOut, Utensils, User as UserIcon, LayoutDashboard } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import {
@@ -33,6 +32,7 @@ import {
 import { CookMenuDialog } from './cook-menu-dialog';
 import { ViewMenuDialog } from './view-menu-dialog';
 import { CookAccountDialog } from './cook-account-dialog';
+import Link from 'next/link';
 
 export function FooterMenu() {
     const { user: authUser, loading: authLoading } = useUser();
@@ -95,6 +95,23 @@ export function FooterMenu() {
                 </TooltipTrigger>
                 <TooltipContent>
                     <p>Cook Account</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Dashboard Link */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" className="flex flex-col h-auto p-1" asChild>
+                    <Link href="/dashboard">
+                      <LayoutDashboard className='h-6 w-6' />
+                      <span className='text-xs'>Dashboard</span>
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Cook Dashboard</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
