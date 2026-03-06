@@ -1,5 +1,3 @@
-
-
 export type Restaurant = {
   id: string;
   userId: string;
@@ -17,8 +15,8 @@ export type Restaurant = {
 
 export type User = {
   id: string;
-  username: string; // The unique @handle
-  displayName: string; // The user's chosen display name
+  username: string;
+  displayName: string;
   email: string;
   mobile?: string;
   postcode?: string;
@@ -29,39 +27,65 @@ export type User = {
 };
 
 export type MasterMenuCategory = {
-    id: string;
-    name: string;
-    cuisine: 'English' | 'Indian' | 'Italian';
+  id: string;
+  name: string;
+  cuisine: 'English' | 'Indian' | 'Italian';
 };
 
 export type MenuDish = {
-    id: string;
-    name: string;
-}
+  id: string;
+  name: string;
+};
 
 export type CookMenuItem = {
-    id: string;
-    masterCategoryId: string;
-    name: string;
-    description: string;
-    price: number;
-    tags?: string[];
-    imageUrls?: string[];
-}
+  id: string;
+  masterCategoryId: string;
+  name: string;
+  description: string;
+  price: number;
+  tags?: string[];
+  imageUrls?: string[];
+};
 
 export type BasketItem = CookMenuItem & {
-    quantity: number;
-    restaurantId: string;
-    restaurantName: string;
-  };
+  quantity: number;
+  restaurantId: string;
+  restaurantName: string;
+};
 
 export type Order = {
-    id: string;
-    userId: string; // The user who placed the order
-    cookId: string; // The cook receiving the order
-    items: BasketItem[];
-    totalPrice: number; // Price in the smallest currency unit (e.g. pence)
-    status: 'pending' | 'paid' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-    createdAt: any; // Firestore Timestamp
-    stripePaymentIntentId: string;
+  id: string;
+  userId: string;
+  cookId: string;
+  items: BasketItem[];
+  totalPrice: number;
+  status: 'pending' | 'paid' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  createdAt: any;
+  stripePaymentIntentId: string;
+};
+
+export type ChatInvoiceItem = {
+  description: string;
+  price: number;
+};
+
+export type ChatMessage = {
+  id: string;
+  sender: 'cook' | 'customer';
+  text: string;
+  createdAt: any;
+};
+
+export type Chat = {
+  id: string;
+  cookId: string;
+  cookDisplayName: string;
+  cookEmail: string;
+  alertId: string;
+  sessionId: string;
+  status: 'open' | 'invoiced' | 'paid' | 'closed';
+  createdAt: any;
+  invoiceItems?: ChatInvoiceItem[];
+  invoiceTotal?: number;
+  stripePaymentIntentId?: string;
 };
