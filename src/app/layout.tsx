@@ -1,10 +1,10 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseProvider } from '@/firebase/provider';
 import { Header } from '@/components/header';
 import { BasketProvider } from '@/context/basket-context';
+import { ChatProvider } from '@/context/chat-context';
 import { FooterMenu } from '@/components/footer-menu';
 
 export const metadata: Metadata = {
@@ -38,9 +38,11 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseProvider>
           <BasketProvider>
-            <Header />
-            <main className='pb-24'>{children}</main>
-            <FooterMenu />
+            <ChatProvider>
+              <Header />
+              <main className='pb-24'>{children}</main>
+              <FooterMenu />
+            </ChatProvider>
           </BasketProvider>
         </FirebaseProvider>
         <Toaster />
