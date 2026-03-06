@@ -11,8 +11,9 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useBasket } from '@/context/basket-context';
+import { useChatContext } from '@/context/chat-context';
 import { Button } from './ui/button';
-import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
@@ -26,6 +27,7 @@ export function BasketDialog({ children }: { children: React.ReactNode }) {
     removeItem,
     totalPrice,
   } = useBasket();
+  const { alertId } = useChatContext();
 
   return (
     <Dialog>
@@ -38,9 +40,9 @@ export function BasketDialog({ children }: { children: React.ReactNode }) {
         <DialogHeader>
           <DialogTitle>Your Basket</DialogTitle>
           {basket.length > 0 && (
-             <DialogDescription>
-                From: <span className='font-semibold'>{basket[0].restaurantName}</span>
-             </DialogDescription>
+            <DialogDescription>
+              From: <span className='font-semibold'>{basket[0].restaurantName}</span>
+            </DialogDescription>
           )}
         </DialogHeader>
         {basket.length > 0 ? (
@@ -96,14 +98,23 @@ export function BasketDialog({ children }: { children: React.ReactNode }) {
             </ScrollArea>
             <Separator />
             <DialogFooter className="sm:justify-between flex-row">
-                <div className='text-lg font-bold'>
-                    Total: £{totalPrice.toFixed(2)}
-                </div>
-                <DialogClose asChild>
+              <div className='text-lg font-bold'>
+                Total: £{totalPrice.toFixed(2)}
+              </div>
+              <DialogClose asChild>
+                {alertId ? (
+                  // Active chat — prompt customer to chat with cook
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    Chat with Cook
+                  </Button>
+                ) : (
+                  // No active chat — go straight to checkout
                   <Button asChild>
                     <Link href="/checkout">Go to Checkout</Link>
                   </Button>
-                </DialogClose>
+                )}
+              </DialogClose>
             </DialogFooter>
           </>
         ) : (
