@@ -30,11 +30,28 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
   const [inputText, setInputText] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [invoiceItems, setInvoiceItems] = useState<ChatInvoiceItem[]>(chat.invoiceItems || []);
+  const [chatStatus, setChatStatus] = useState(chat.status);
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Listen to the chat document in real time so invoice items + status update live for customer
+  useEffect(() => {
+    if (!firestore) return;
+
+    const chatDocRef = doc(firestore, 'chats', chat.id);
+    const unsubscribe = onSnapshot(chatDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setInvoiceItems(data.invoiceItems || []);
+        setChatStatus(data.status);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firestore, chat.id]);
 
   // Listen to messages in real time
   useEffect(() => {
@@ -71,7 +88,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     setIsSending(true);
 
     try {
-      // If cook is sending the draft allergy message, update it rather than add new
       const draftDoc = messages.find((m) => (m as any).isDraft);
       if (role === 'cook' && draftDoc) {
         await updateDoc(
@@ -111,7 +127,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     ];
     const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
 
-    setInvoiceItems(updatedItems);
     setNewItemDescription('');
     setNewItemPrice('');
 
@@ -127,7 +142,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
   const removeInvoiceItem = async (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
-    setInvoiceItems(updatedItems);
 
     if (firestore) {
       await updateDoc(doc(firestore, 'chats', chat.id), {
@@ -160,8 +174,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
 
   const invoiceTotal = invoiceItems.reduce((sum, item) => sum + item.price, 0);
 
-  // Customers only see non-draft messages
-  // Cooks see everything including the draft
   const visibleMessages = messages.filter(
     (m) => role === 'cook' || !(m as any).isDraft
   );
@@ -180,7 +192,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
                 : 'Customer Chat'}
             </p>
             <p className="text-xs text-orange-100">
-              {chat.status === 'invoiced' ? '📋 Invoice sent — awaiting payment' : '🟢 Kitchen Open'}
+              {chatStatus === 'invoiced' ? '📋 Invoice sent — awaiting payment' : '🟢 Kitchen Open'}
             </p>
           </div>
         </div>
@@ -240,8 +252,8 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
             );
           })}
 
-          {/* Invoice breakdown for customer */}
-          {role === 'customer' && chat.status === 'invoiced' && invoiceItems.length > 0 && (
+          {/* Pay Now button — appears in real time when cook sends invoice */}
+          {role === 'customer' && chatStatus === 'invoiced' && invoiceItems.length > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
               <p className="font-semibold text-green-800 text-sm">📋 Invoice Breakdown</p>
               {invoiceItems.map((item, index) => (
@@ -258,7 +270,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
               <Button
                 className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
                 onClick={() => {
-                  // Stripe payment will be wired up in a future step
+                  // Stripe payment wired up in next step
                   console.log('Proceed to Stripe payment:', invoiceTotal);
                 }}
               >
@@ -328,7 +340,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
 
       {/* Message Input */}
       <div className="px-4 py-3 border-t border-gray-200 flex-shrink-0">
-        {/* Cook draft editor — shown until draft is sent */}
         {role === 'cook' && messages.some((m) => (m as any).isDraft) ? (
           <div className="space-y-2">
             <p className="text-xs text-orange-500 font-semibold">
@@ -352,8 +363,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
           </div>
         ) : (
           <div className="space-y-2">
-            {/* Invoice builder toggle — cook only, before invoice is sent */}
-            {role === 'cook' && chat.status !== 'invoiced' && (
+            {role === 'cook' && chatStatus !== 'invoiced' && (
               <button
                 onClick={() => setShowInvoiceBuilder(!showInvoiceBuilder)}
                 className="text-xs text-orange-500 hover:text-orange-600 font-semibold flex items-center gap-1"
@@ -363,8 +373,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
               </button>
             )}
 
-            {/* Regular message input */}
-            {chat.status !== 'invoiced' || role === 'cook' ? (
+            {chatStatus !== 'invoiced' || role === 'cook' ? (
               <div className="flex gap-2">
                 <input
                   type="text"
