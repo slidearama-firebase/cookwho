@@ -19,16 +19,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { calculateDistance } from '@/lib/utils';
 import { ExpandableText } from '@/components/expandable-text';
 import { useBasket } from '@/context/basket-context';
+import { useChatContext } from '@/context/chat-context';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '@/components/ui/alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CookPage() {
@@ -40,9 +41,9 @@ export default function CookPage() {
   const { toast } = useToast();
   const [browserLocation, setBrowserLocation] = useState<{ latitude: number; longitude: number; } | null>(null);
   const { basket, addItem, clearBasket } = useBasket();
+  const { setAlertId, alertId } = useChatContext();
   const [showClearBasketDialog, setShowClearBasketDialog] = useState(false);
   const [itemToAdd, setItemToAdd] = useState<CookMenuItem | null>(null);
-  const [alertId, setAlertId] = useState<string | null>(null);
   const alertSentRef = useRef(false);
   const alertListenerRef = useRef<(() => void) | null>(null);
 
@@ -56,14 +57,13 @@ export default function CookPage() {
           });
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error('Error getting location:', error);
         }
       );
     }
   }, []);
 
-  // When we have an alertId, listen to it in real time
-  // This works for ANY customer — logged in or not
+  // Listen to the alert document in real time using alertId from context
   useEffect(() => {
     if (!firestore || !alertId) return;
 
@@ -80,19 +80,19 @@ export default function CookPage() {
       if (data?.status === 'expired') {
         // Kitchen closed — clear basket and notify customer
         clearBasket();
-        alertSentRef.current = false; // Allow new alert if they try another cook
+        alertSentRef.current = false;
         setAlertId(null);
         toast({
-          title: "Kitchen Unavailable",
+          title: 'Kitchen Unavailable',
           description: `Sorry, ${data.cookDisplayName || 'this cook'}'s kitchen is currently closed. Your basket has been cleared. Please try another cook.`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
     });
 
     alertListenerRef.current = unsubscribe;
     return () => unsubscribe();
-  }, [firestore, alertId, clearBasket, toast]);
+  }, [firestore, alertId, clearBasket, setAlertId, toast]);
 
   const userRef = useMemo(() => {
     if (!firestore) return null;
@@ -137,7 +137,7 @@ export default function CookPage() {
 
   const processAddItem = (item: CookMenuItem) => {
     if (!restaurant || !user || !user.email) return;
-  
+
     const basketItem: BasketItem = {
       ...item,
       quantity: 1,
@@ -149,7 +149,7 @@ export default function CookPage() {
     // Only send one alert per cook page visit
     if (alertSentRef.current) return;
     alertSentRef.current = true;
-  
+
     // Fire alert silently in background — customer is not interrupted
     fetch('/api/send-cook-alert', {
       method: 'POST',
@@ -164,18 +164,19 @@ export default function CookPage() {
       .then(res => res.json())
       .then(response => {
         if (response.success && response.alertId) {
-          console.log("Cook alert sent, listening for response...");
+          console.log('Cook alert sent, listening for response...');
+          // Store alertId in global context so chat bubble can access it
           setAlertId(response.alertId);
         }
       })
       .catch(error => {
-        console.error("An unexpected error occurred while sending cook alert:", error);
+        console.error('An unexpected error occurred while sending cook alert:', error);
       });
   };
 
   const handleAddItemClick = (item: CookMenuItem) => {
     if (!restaurant) return;
-  
+
     if (basket.length === 0 || basket[0].restaurantId === restaurant.id) {
       processAddItem(item);
     } else {
@@ -198,17 +199,17 @@ export default function CookPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <Skeleton className="h-12 w-48 mb-8" />
         <div className="flex flex-col md:flex-row gap-8 items-start">
-            <Skeleton className="w-full md:w-1/3 aspect-square rounded-lg" />
-            <div className="w-full md:w-2/3 space-y-4">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-6 w-1/2" />
-            </div>
+          <Skeleton className="w-full md:w-1/3 aspect-square rounded-lg" />
+          <div className="w-full md:w-2/3 space-y-4">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 w-full rounded-lg" />
-            ))}
-          </div>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -216,138 +217,138 @@ export default function CookPage() {
   if (!restaurant || !user) {
     notFound();
   }
-  
+
   const displayName = restaurant.name;
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <AlertDialog open={showClearBasketDialog} onOpenChange={setShowClearBasketDialog}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Start a New Basket?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Your current basket contains items from a different restaurant. Would you like to clear it and start a new one with this item?
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setItemToAdd(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmClearBasket}>Clear Basket & Add</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-4 mb-4">
-            <Avatar className="w-12 h-12 rounded-full border-2 border-primary shadow-lg">
-                <AvatarImage src={restaurant.restaurantImageUrl} alt={displayName} className="object-cover" />
-                <AvatarFallback className="text-2xl rounded-full">{displayName?.charAt(0) ?? 'C'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-                <h1 className="font-headline text-2xl font-bold text-foreground truncate">{displayName}</h1>
-                <div className='flex items-center flex-wrap gap-x-4 gap-y-1 text-md text-muted-foreground mt-1'>
-                    {distance !== null && (
-                    <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        <span>{distance.toFixed(1)} km</span>
-                    </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span>{restaurant.rating || 0}</span>
-                    </div>
-                </div>
+      <AlertDialog open={showClearBasketDialog} onOpenChange={setShowClearBasketDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start a New Basket?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current basket contains items from a different restaurant. Would you like to clear it and start a new one with this item?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToAdd(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmClearBasket}>Clear Basket & Add</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-4 mb-4">
+        <Avatar className="w-12 h-12 rounded-full border-2 border-primary shadow-lg">
+          <AvatarImage src={restaurant.restaurantImageUrl} alt={displayName} className="object-cover" />
+          <AvatarFallback className="text-2xl rounded-full">{displayName?.charAt(0) ?? 'C'}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-headline text-2xl font-bold text-foreground truncate">{displayName}</h1>
+          <div className='flex items-center flex-wrap gap-x-4 gap-y-1 text-md text-muted-foreground mt-1'>
+            {distance !== null && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{distance.toFixed(1)} km</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+              <span>{restaurant.rating || 0}</span>
             </div>
+          </div>
         </div>
+      </div>
 
-        {restaurant.description && (
-          <div className="mb-8">
-             <ExpandableText text={restaurant.description} maxLength={200} />
-          </div>
-        )}
+      {restaurant.description && (
+        <div className="mb-8">
+          <ExpandableText text={restaurant.description} maxLength={200} />
+        </div>
+      )}
 
-        {restaurant.showcaseImageUrls && restaurant.showcaseImageUrls.length > 0 && (
-          <div className="mb-8">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {restaurant.showcaseImageUrls.map((url, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                    <div className="aspect-video relative rounded-lg overflow-hidden">
-                      <Image src={url} alt={`Showcase image ${index + 1}`} fill className="object-cover" />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
-              <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
-            </Carousel>
-          </div>
-        )}
-
-        <h2 className="font-headline text-3xl font-bold text-foreground mb-6 border-b pb-2">
-            Menu
-        </h2>
-
-        {filteredMenuItems && filteredMenuItems.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMenuItems.map((item) => (
-              <Card key={item.id} className="flex flex-col overflow-hidden">
-                {item.imageUrls && item.imageUrls.length > 0 ? (
-                  <div className="relative">
-                     <Carousel className="w-full">
-                        <CarouselContent>
-                            {item.imageUrls.map((url, index) => (
-                                <CarouselItem key={index}>
-                                    <div className="aspect-video relative">
-                                        <Image src={url} alt={item.name} fill className="object-cover" />
-                                    </div>
-                                </CarouselItem>
-                            ))}
-                        </CarouselContent>
-                        {item.imageUrls.length > 1 && (
-                            <>
-                                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
-                                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
-                            </>
-                        )}
-                    </Carousel>
+      {restaurant.showcaseImageUrls && restaurant.showcaseImageUrls.length > 0 && (
+        <div className="mb-8">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {restaurant.showcaseImageUrls.map((url, index) => (
+                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                  <div className="aspect-video relative rounded-lg overflow-hidden">
+                    <Image src={url} alt={`Showcase image ${index + 1}`} fill className="object-cover" />
                   </div>
-                ) : (
-                    <div className="aspect-video bg-muted flex items-center justify-center">
-                        <Utensils className="w-12 h-12 text-muted-foreground" />
-                    </div>
-                )}
-                <CardHeader>
-                  <CardTitle>{item.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <ExpandableText text={item.description} maxLength={125} />
-                  {item.tags && item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {item.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+          </Carousel>
+        </div>
+      )}
+
+      <h2 className="font-headline text-3xl font-bold text-foreground mb-6 border-b pb-2">
+        Menu
+      </h2>
+
+      {filteredMenuItems && filteredMenuItems.length > 0 ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMenuItems.map((item) => (
+            <Card key={item.id} className="flex flex-col overflow-hidden">
+              {item.imageUrls && item.imageUrls.length > 0 ? (
+                <div className="relative">
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {item.imageUrls.map((url, index) => (
+                        <CarouselItem key={index}>
+                          <div className="aspect-video relative">
+                            <Image src={url} alt={item.name} fill className="object-cover" />
+                          </div>
+                        </CarouselItem>
                       ))}
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className='flex items-center justify-between'>
-                    <p className="font-semibold text-xl text-primary">£{item.price.toFixed(2)}</p>
-                    <Button onClick={() => handleAddItemClick(item)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add to Basket
-                    </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Alert>
-            <Utensils className="h-4 w-4" />
-            <AlertTitle>Menu Coming Soon!</AlertTitle>
-            <AlertDescription>
-                {categoryId 
-                ? "This cook hasn't added their version of this dish yet."
-                : "This cook hasn't added any items to their menu yet. Check back later!"
-                }
-            </AlertDescription>
-          </Alert>
-        )}
-      </main>
+                    </CarouselContent>
+                    {item.imageUrls.length > 1 && (
+                      <>
+                        <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+                        <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+                      </>
+                    )}
+                  </Carousel>
+                </div>
+              ) : (
+                <div className="aspect-video bg-muted flex items-center justify-center">
+                  <Utensils className="w-12 h-12 text-muted-foreground" />
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle>{item.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <ExpandableText text={item.description} maxLength={125} />
+                {item.tags && item.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {item.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className='flex items-center justify-between'>
+                <p className="font-semibold text-xl text-primary">£{item.price.toFixed(2)}</p>
+                <Button onClick={() => handleAddItemClick(item)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add to Basket
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Alert>
+          <Utensils className="h-4 w-4" />
+          <AlertTitle>Menu Coming Soon!</AlertTitle>
+          <AlertDescription>
+            {categoryId
+              ? "This cook hasn't added their version of this dish yet."
+              : "This cook hasn't added any items to their menu yet. Check back later!"}
+          </AlertDescription>
+        </Alert>
+      )}
+    </main>
   );
 }
