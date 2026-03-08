@@ -12,12 +12,16 @@ import {
 } from '@/components/ui/dialog';
 import { useBasket } from '@/context/basket-context';
 import { useChatContext } from '@/context/chat-context';
+import { useFirestore } from '@/firebase/provider';
+import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { Minus, Plus, ShoppingCart, Trash2, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { type Chat } from '@/lib/types';
 
 export function BasketDialog({ children }: { children: React.ReactNode }) {
   const {
@@ -28,6 +32,55 @@ export function BasketDialog({ children }: { children: React.ReactNode }) {
     totalPrice,
   } = useBasket();
   const { alertId } = useChatContext();
+  const firestore = useFirestore();
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
+  const [hasRealMessage, setHasRealMessage] = useState(false);
+
+  // Listen for a chat matching this alertId
+  useEffect(() => {
+    if (!firestore || !alertId) {
+      setActiveChat(null);
+      setHasRealMessage(false);
+      return;
+    }
+
+    const chatsRef = collection(firestore, 'chats');
+    const q = query(
+      chatsRef,
+      where('alertId', '==', alertId),
+      where('status', 'in', ['open', 'invoiced'])
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const chatDoc = snapshot.docs[0];
+        setActiveChat({ id: chatDoc.id, ...chatDoc.data() } as Chat);
+      } else {
+        setActiveChat(null);
+        setHasRealMessage(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firestore, alertId]);
+
+  // Watch for the cook's first real (non-draft) message — same logic as chat bubble
+  useEffect(() => {
+    if (!firestore || !activeChat) return;
+
+    const messagesRef = collection(firestore, 'chats', activeChat.id, 'messages');
+    const q = query(
+      messagesRef,
+      where('isDraft', '==', false),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasRealMessage(!snapshot.empty);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, activeChat]);
 
   return (
     <Dialog>
@@ -102,14 +155,14 @@ export function BasketDialog({ children }: { children: React.ReactNode }) {
                 Total: £{totalPrice.toFixed(2)}
               </div>
               <DialogClose asChild>
-                {alertId ? (
-                  // Active chat — prompt customer to chat with cook
+                {hasRealMessage ? (
+                  // Cook has sent first message — show Chat with Cook button
                   <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
                     <MessageCircle className="h-4 w-4" />
                     Chat with Cook
                   </Button>
                 ) : (
-                  // No active chat — go straight to checkout
+                  // Cook hasn't messaged yet — show standard checkout
                   <Button asChild>
                     <Link href="/checkout">Go to Checkout</Link>
                   </Button>
