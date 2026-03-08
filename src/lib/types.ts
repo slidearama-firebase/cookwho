@@ -87,5 +87,6 @@ export type Chat = {
   createdAt: any;
   invoiceItems?: ChatInvoiceItem[];
   invoiceTotal?: number;
+  basketItems?: BasketItem[];   // Customer's basket at time of order
   stripePaymentIntentId?: string;
 };
