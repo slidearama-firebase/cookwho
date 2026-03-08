@@ -10,7 +10,7 @@ if (!getApps().length) {
 
 export async function POST(req: Request) {
   try {
-    const { cookEmail, cookDisplayName: rawDisplayName, cookId, itemName } = await req.json();
+    const { cookEmail, cookDisplayName: rawDisplayName, cookId, itemName, basketItems } = await req.json();
     const cookDisplayName = rawDisplayName || 'Cook';
 
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
@@ -43,12 +43,13 @@ export async function POST(req: Request) {
       });
     }
 
-    // No live order — create an alert document in Firestore
+    // No live order — create an alert document in Firestore (include basket items)
     const alertRef = await db.collection('cookAlerts').add({
       cookId,
       cookEmail,
       cookDisplayName,
       itemName,
+      basketItems: basketItems || [],
       status: 'pending',
       createdAt: new Date(),
     });
