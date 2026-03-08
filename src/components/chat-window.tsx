@@ -12,8 +12,8 @@ import {
   doc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { X, Send, Plus, Trash2, ChefHat } from 'lucide-react';
-import { type Chat, type ChatMessage, type ChatInvoiceItem } from '@/lib/types';
+import { X, Send, Plus, Trash2, ChefHat, ShoppingBag } from 'lucide-react';
+import { type Chat, type ChatMessage, type ChatInvoiceItem, type BasketItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -203,6 +203,25 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
           <X className="h-5 w-5" />
         </button>
       </div>
+
+
+      {/* Basket summary — cook only, shows what the customer ordered */}
+      {role === 'cook' && chat.basketItems && chat.basketItems.length > 0 && (
+        <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex-shrink-0">
+          <div className="flex items-center gap-1 mb-1">
+            <ShoppingBag className="h-3 w-3 text-orange-500" />
+            <p className="text-xs font-semibold text-orange-600">Customer's Basket</p>
+          </div>
+          <div className="space-y-0.5">
+            {chat.basketItems.map((item: BasketItem, index: number) => (
+              <div key={index} className="flex justify-between text-xs text-orange-700">
+                <span>{item.name} x{item.quantity}</span>
+                <span>£{(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4 py-3 min-h-0">
