@@ -159,6 +159,7 @@ export default function CookPage() {
         cookDisplayName: user.displayName,
         cookId: userId,
         itemName: item.name,
+        basketItems: [...basket, { ...item, quantity: 1 }],
       }),
     })
       .then(res => res.json())
