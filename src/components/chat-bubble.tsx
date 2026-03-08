@@ -50,7 +50,6 @@ export function ChatBubble({ alertId }: ChatBubbleProps) {
     const messagesRef = collection(firestore, 'chats', activeChat.id, 'messages');
     const q = query(
       messagesRef,
-      where('sender', '==', 'cook'),
       where('isDraft', '==', false),
       limit(1)
     );
