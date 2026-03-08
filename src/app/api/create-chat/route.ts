@@ -36,10 +36,14 @@ export async function POST(req: Request) {
       });
     }
 
+    // Read basket items from the alert document
+    const alertDoc = await db.collection('cookAlerts').doc(alertId).get();
+    const basketItems = alertDoc.exists ? (alertDoc.data()?.basketItems || []) : [];
+
     // Generate a unique session ID for this chat
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create the chat document
+    // Create the chat document — include basket items so cook can see the order
     const chatRef = await db.collection('chats').add({
       cookId,
       cookDisplayName: cookDisplayName || 'Cook',
@@ -50,6 +54,7 @@ export async function POST(req: Request) {
       createdAt: new Date(),
       invoiceItems: [],
       invoiceTotal: 0,
+      basketItems,
     });
 
     // Add the default opening message as a draft
