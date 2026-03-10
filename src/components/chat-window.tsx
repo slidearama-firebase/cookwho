@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { X, Send, Plus, Trash2, ChefHat, ShoppingBag } from 'lucide-react';
 import { type Chat, type ChatMessage, type ChatInvoiceItem, type BasketItem } from '@/lib/types';
+import { StripePaymentForm } from '@/components/stripe-payment-form';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +36,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
   const [newItemPrice, setNewItemPrice] = useState('');
   const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Listen to the chat document in real time so invoice items + status update live for customer
@@ -286,15 +288,21 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
                 <span>Total</span>
                 <span>£{invoiceTotal.toFixed(2)}</span>
               </div>
-              <Button
-                className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
-                onClick={() => {
-                  // Stripe payment wired up in next step
-                  console.log('Proceed to Stripe payment:', invoiceTotal);
-                }}
-              >
-                💳 Pay Now — £{invoiceTotal.toFixed(2)}
-              </Button>
+              {showPayment ? (
+                <StripePaymentForm
+                  chatId={chat.id}
+                  invoiceTotal={invoiceTotal}
+                  onSuccess={() => setShowPayment(false)}
+                  onCancel={() => setShowPayment(false)}
+                />
+              ) : (
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
+                  onClick={() => setShowPayment(true)}
+                >
+                  💳 Pay Now — £{invoiceTotal.toFixed(2)}
+                </Button>
+              )}
             </div>
           )}
 
