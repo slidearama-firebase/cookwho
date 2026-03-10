@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   initializeApp();
 }
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
 
 export async function POST(req: Request) {
   try {
@@ -42,20 +37,36 @@ export async function POST(req: Request) {
       );
     }
 
-    // Stripe amounts are in pence (smallest currency unit)
+    // Stripe amounts are in pence
     const amountInPence = Math.round(invoiceTotal * 100);
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInPence,
-      currency: 'gbp',
-      metadata: {
-        chatId,
-        cookId: chatData.cookId,
-        cookEmail: chatData.cookEmail,
+    // Call Stripe API directly using fetch — no npm package needed
+    const stripeResponse = await fetch('https://api.stripe.com/v1/payment_intents', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
+      body: new URLSearchParams({
+        amount: amountInPence.toString(),
+        currency: 'gbp',
+        'metadata[chatId]': chatId,
+        'metadata[cookId]': chatData.cookId,
+        'metadata[cookEmail]': chatData.cookEmail,
+      }).toString(),
     });
 
-    // Save the payment intent ID to the chat document
+    const paymentIntent = await stripeResponse.json() as any;
+
+    if (!stripeResponse.ok) {
+      console.error('Stripe error:', paymentIntent);
+      return NextResponse.json(
+        { success: false, message: paymentIntent.error?.message || 'Stripe error' },
+        { status: 500 }
+      );
+    }
+
+    // Save payment intent ID to chat document
     await db.collection('chats').doc(chatId).update({
       stripePaymentIntentId: paymentIntent.id,
     });
