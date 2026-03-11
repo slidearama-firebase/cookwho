@@ -36,7 +36,7 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
     script.async = true;
     script.onload = async () => {
       // Initialise Stripe
-      stripeRef.current = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+      stripeRef.current = window.Stripe('pk_test_51PPLUXP7ribnEomK4rm843ASpjDPYhkkspnKOPEyQAqei4BCLGduODIE77fU7Ea40GEMycrdaNwtVkMsnISvOV3k0000es5dku');
 
       // Create payment intent
       try {
