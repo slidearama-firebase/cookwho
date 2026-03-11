@@ -5,3 +5,8 @@ runConfig:
   maxInstances: 1
 buildConfig:
   installCommand: npm install --no-package-lock
+secrets:
+  - secret: MAILGUN_API_KEY
+  - secret: MAILGUN_DOMAIN
+  - secret: STRIPE_SECRET_KEY
+  - secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
