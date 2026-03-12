@@ -36,7 +36,7 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
     script.async = true;
     script.onload = async () => {
       // Initialise Stripe
-      stripeRef.current = window.Stripe('pk_test_51PPLUXP7ribnEomK4rm843ASpjDPYhkkspnKOPEyQAqei4BCLGduODIE77fU7Ea40GEMycrdaNwtVkMsnISvOV3k0000es5dku');
+      stripeRef.current = window.Stripe('pk_test_51PPLUXP7ribnEomKm0oXHIvKi8iCzTXUslYZFBb408OY8M3G7StZybhP2JCaIJbKIjt7ivzScI7hZ2z7ImjZ6s4t00tpBrn1Lq');
 
       // Create payment intent
       try {
