@@ -23,6 +23,7 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [elementReady, setElementReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [succeeded, setSucceeded] = useState(false);
   const stripeRef = useRef<any>(null);
@@ -30,15 +31,12 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
   const paymentElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load Stripe.js from CDN
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
     script.async = true;
     script.onload = async () => {
-      // Initialise Stripe
       stripeRef.current = window.Stripe('pk_test_51PPLUXP7ribnEomKm0oXHIvKi8iCzTXUslYZFBb408OY8M3G7StZybhP2JCaIJbKIjt7ivzScI7hZ2z7ImjZ6s4t00tpBrn1Lq');
 
-      // Create payment intent
       try {
         const res = await fetch('/api/create-payment-intent', {
           method: 'POST',
@@ -53,7 +51,6 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
           return;
         }
 
-        // Mount Stripe Elements
         elementsRef.current = stripeRef.current.elements({
           clientSecret: data.clientSecret,
           appearance: {
@@ -66,6 +63,11 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
         });
 
         const paymentElement = elementsRef.current.create('payment');
+
+        paymentElement.on('ready', () => {
+          setElementReady(true);
+        });
+
         if (paymentElementRef.current) {
           paymentElement.mount(paymentElementRef.current);
         }
@@ -78,14 +80,13 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup script on unmount
       const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]');
       if (existingScript) existingScript.remove();
     };
   }, [chatId]);
 
   const handleSubmit = async () => {
-    if (!stripeRef.current || !elementsRef.current || !firestore) return;
+    if (!stripeRef.current || !elementsRef.current || !firestore || !elementReady) return;
 
     setIsProcessing(true);
     setErrorMessage('');
@@ -130,7 +131,11 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
         </div>
       ) : (
         <>
-          <div ref={paymentElementRef} />
+          {/* Explicit width and min-height so Stripe iframes render visibly */}
+          <div
+            ref={paymentElementRef}
+            style={{ minHeight: '200px', width: '100%' }}
+          />
           {errorMessage && (
             <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
               <XCircle className="h-4 w-4 flex-shrink-0" />
@@ -149,12 +154,17 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
             <Button
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               onClick={handleSubmit}
-              disabled={isProcessing}
+              disabled={isProcessing || !elementReady}
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
+                </>
+              ) : !elementReady ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
                 </>
               ) : (
                 `💳 Pay £${invoiceTotal.toFixed(2)}`
