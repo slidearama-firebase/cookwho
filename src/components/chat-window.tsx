@@ -206,7 +206,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
         </button>
       </div>
 
-
       {/* Basket summary — cook only, shows what the customer ordered */}
       {role === 'cook' && chat.basketItems && chat.basketItems.length > 0 && (
         <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex-shrink-0">
@@ -275,7 +274,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
 
           {/* Pay Now button — appears in real time when cook sends invoice */}
           {role === 'customer' && chatStatus === 'invoiced' && invoiceItems.length > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2 overflow-y-auto">
               <p className="font-semibold text-green-800 text-sm">📋 Invoice Breakdown</p>
               {invoiceItems.map((item, index) => (
                 <div key={index} className="flex justify-between text-sm text-green-700">
