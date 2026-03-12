@@ -29,6 +29,7 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
   const stripeRef = useRef<any>(null);
   const elementsRef = useRef<any>(null);
   const paymentElementRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -65,13 +66,18 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
         const paymentElement = elementsRef.current.create('payment');
 
         paymentElement.on('ready', () => {
+          setIsLoading(false);
           setElementReady(true);
         });
 
-        if (paymentElementRef.current) {
-          paymentElement.mount(paymentElementRef.current);
-        }
-        setIsLoading(false);
+        // Small delay to ensure the div is in the DOM before mounting
+        setTimeout(() => {
+          if (paymentElementRef.current && !mountedRef.current) {
+            mountedRef.current = true;
+            paymentElement.mount(paymentElementRef.current);
+          }
+        }, 100);
+
       } catch (err) {
         setErrorMessage('Failed to initialise payment. Please try again.');
         setIsLoading(false);
@@ -125,54 +131,54 @@ export function StripePaymentForm({ chatId, invoiceTotal, onSuccess, onCancel }:
 
   return (
     <div className="space-y-4">
-      {isLoading ? (
-        <div className="flex items-center justify-center py-6">
+      {/* Payment element div is ALWAYS in the DOM so Stripe can mount into it */}
+      <div
+        ref={paymentElementRef}
+        style={{ minHeight: '200px', width: '100%', display: isLoading ? 'none' : 'block' }}
+      />
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-6" style={{ minHeight: '200px' }}>
           <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         </div>
-      ) : (
-        <>
-          {/* Explicit width and min-height so Stripe iframes render visibly */}
-          <div
-            ref={paymentElementRef}
-            style={{ minHeight: '200px', width: '100%' }}
-          />
-          {errorMessage && (
-            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
-              <XCircle className="h-4 w-4 flex-shrink-0" />
-              <p>{errorMessage}</p>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={onCancel}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-              onClick={handleSubmit}
-              disabled={isProcessing || !elementReady}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : !elementReady ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                `💳 Pay £${invoiceTotal.toFixed(2)}`
-              )}
-            </Button>
-          </div>
-        </>
       )}
+
+      {errorMessage && (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
+          <XCircle className="h-4 w-4 flex-shrink-0" />
+          <p>{errorMessage}</p>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={onCancel}
+          disabled={isProcessing}
+        >
+          Cancel
+        </Button>
+        <Button
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          onClick={handleSubmit}
+          disabled={isProcessing || !elementReady}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : !elementReady ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading...
+            </>
+          ) : (
+            `💳 Pay £${invoiceTotal.toFixed(2)}`
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
