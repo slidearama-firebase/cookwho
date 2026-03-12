@@ -69,7 +69,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
       })) as ChatMessage[];
       setMessages(msgs);
 
-      // Load draft text for cook
       if (role === 'cook') {
         const draft = snapshot.docs.find((d) => d.data().isDraft);
         if (draft) setDraftMessage(draft.data().text);
@@ -84,7 +83,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send a message
   const sendMessage = async (text: string) => {
     if (!firestore || !text.trim()) return;
     setIsSending(true);
@@ -94,11 +92,7 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
       if (role === 'cook' && draftDoc) {
         await updateDoc(
           doc(firestore, 'chats', chat.id, 'messages', draftDoc.id),
-          {
-            text: text.trim(),
-            isDraft: false,
-            createdAt: serverTimestamp(),
-          }
+          { text: text.trim(), isDraft: false, createdAt: serverTimestamp() }
         );
         setDraftMessage('');
       } else {
@@ -117,16 +111,12 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     }
   };
 
-  // Add an invoice item
   const addInvoiceItem = async () => {
     if (!newItemDescription.trim() || !newItemPrice) return;
     const price = parseFloat(newItemPrice);
     if (isNaN(price) || price <= 0) return;
 
-    const updatedItems = [
-      ...invoiceItems,
-      { description: newItemDescription.trim(), price },
-    ];
+    const updatedItems = [...invoiceItems, { description: newItemDescription.trim(), price }];
     const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
 
     setNewItemDescription('');
@@ -140,7 +130,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     }
   };
 
-  // Remove an invoice item
   const removeInvoiceItem = async (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
@@ -153,7 +142,6 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
     }
   };
 
-  // Send invoice to customer
   const sendInvoice = async () => {
     if (!firestore || invoiceItems.length === 0) return;
     const total = invoiceItems.reduce((sum, item) => sum + item.price, 0);
@@ -181,255 +169,292 @@ export function ChatWindow({ chat, onClose, role }: ChatWindowProps) {
   );
 
   return (
-    <div className="fixed bottom-0 right-0 left-0 sm:left-auto sm:right-6 sm:bottom-6 z-50 w-full sm:w-96 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col border border-gray-200 max-h-[85vh]">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-orange-500 rounded-t-2xl text-white flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <ChefHat className="h-5 w-5" />
-          <div>
-            <p className="font-semibold text-sm">
-              {role === 'customer'
-                ? `Chat with ${chat.cookDisplayName}`
-                : 'Customer Chat'}
-            </p>
-            <p className="text-xs text-orange-100">
-              {chatStatus === 'invoiced' ? '📋 Invoice sent — awaiting payment' : '🟢 Kitchen Open'}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="hover:bg-orange-600 rounded-full p-1 transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Basket summary — cook only, shows what the customer ordered */}
-      {role === 'cook' && chat.basketItems && chat.basketItems.length > 0 && (
-        <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex-shrink-0">
-          <div className="flex items-center gap-1 mb-1">
-            <ShoppingBag className="h-3 w-3 text-orange-500" />
-            <p className="text-xs font-semibold text-orange-600">Customer's Basket</p>
-          </div>
-          <div className="space-y-0.5">
-            {chat.basketItems.map((item: BasketItem, index: number) => (
-              <div key={index} className="flex justify-between text-xs text-orange-700">
-                <span>{item.name} x{item.quantity}</span>
-                <span>£{(item.price * item.quantity).toFixed(2)}</span>
+    <>
+      {/* ── Full-screen payment modal ── */}
+      {showPayment && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowPayment(false)}
+          />
+          {/* Modal panel */}
+          <div className="relative z-10 w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh]">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div>
+                <p className="font-semibold text-gray-800">Complete Payment</p>
+                <p className="text-sm text-gray-500">Total: £{invoiceTotal.toFixed(2)}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-3 min-h-0">
-        <div className="space-y-3">
-          {visibleMessages.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-8">
-              {role === 'cook'
-                ? 'Edit and send your opening message below to start the conversation!'
-                : 'Waiting for your cook to start the conversation...'}
-            </p>
-          )}
-
-          {visibleMessages.map((message) => {
-            const isDraft = (message as any).isDraft;
-            const isInvoice = (message as any).isInvoice;
-            const isMine = message.sender === role;
-
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+              <button
+                onClick={() => setShowPayment(false)}
+                className="hover:bg-gray-100 rounded-full p-2 transition-colors"
               >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                    isDraft
-                      ? 'bg-orange-50 border-2 border-dashed border-orange-300 text-orange-800'
-                      : isMine
-                      ? 'bg-orange-500 text-white'
-                      : isInvoice
-                      ? 'bg-green-50 border border-green-200 text-green-800 font-semibold'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {isDraft && (
-                    <p className="text-xs font-semibold mb-1 text-orange-500">
-                      ✏️ Draft — edit and send below
-                    </p>
-                  )}
-                  {isInvoice && (
-                    <p className="text-xs font-semibold mb-1 text-green-600">
-                      📋 Invoice
-                    </p>
-                  )}
-                  <p>{message.text}</p>
-                </div>
-              </div>
-            );
-          })}
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
 
-          {/* Pay Now button — appears in real time when cook sends invoice */}
-          {role === 'customer' && chatStatus === 'invoiced' && invoiceItems.length > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2 overflow-y-auto">
-              <p className="font-semibold text-green-800 text-sm">📋 Invoice Breakdown</p>
+            {/* Invoice summary inside modal */}
+            <div className="px-5 py-3 bg-green-50 border-b border-green-100">
+              <p className="text-xs font-semibold text-green-700 mb-2">📋 Invoice Breakdown</p>
               {invoiceItems.map((item, index) => (
                 <div key={index} className="flex justify-between text-sm text-green-700">
                   <span>{item.description}</span>
                   <span>£{item.price.toFixed(2)}</span>
                 </div>
               ))}
-              <Separator className="bg-green-200" />
-              <div className="flex justify-between font-bold text-green-800">
+              <Separator className="bg-green-200 my-2" />
+              <div className="flex justify-between font-bold text-green-800 text-sm">
                 <span>Total</span>
                 <span>£{invoiceTotal.toFixed(2)}</span>
               </div>
-              {showPayment ? (
-                <StripePaymentForm
-                  chatId={chat.id}
-                  invoiceTotal={invoiceTotal}
-                  onSuccess={() => setShowPayment(false)}
-                  onCancel={() => setShowPayment(false)}
-                />
-              ) : (
+            </div>
+
+            {/* Stripe form */}
+            <div className="px-5 py-5">
+              <StripePaymentForm
+                chatId={chat.id}
+                invoiceTotal={invoiceTotal}
+                onSuccess={() => setShowPayment(false)}
+                onCancel={() => setShowPayment(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Chat window ── */}
+      <div className="fixed bottom-0 right-0 left-0 sm:left-auto sm:right-6 sm:bottom-6 z-50 w-full sm:w-96 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col border border-gray-200 max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 bg-orange-500 rounded-t-2xl text-white flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <ChefHat className="h-5 w-5" />
+            <div>
+              <p className="font-semibold text-sm">
+                {role === 'customer' ? `Chat with ${chat.cookDisplayName}` : 'Customer Chat'}
+              </p>
+              <p className="text-xs text-orange-100">
+                {chatStatus === 'invoiced' ? '📋 Invoice sent — awaiting payment' : '🟢 Kitchen Open'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="hover:bg-orange-600 rounded-full p-1 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Basket summary — cook only */}
+        {role === 'cook' && chat.basketItems && chat.basketItems.length > 0 && (
+          <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex-shrink-0">
+            <div className="flex items-center gap-1 mb-1">
+              <ShoppingBag className="h-3 w-3 text-orange-500" />
+              <p className="text-xs font-semibold text-orange-600">Customer's Basket</p>
+            </div>
+            <div className="space-y-0.5">
+              {chat.basketItems.map((item: BasketItem, index: number) => (
+                <div key={index} className="flex justify-between text-xs text-orange-700">
+                  <span>{item.name} x{item.quantity}</span>
+                  <span>£{(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 px-4 py-3 min-h-0">
+          <div className="space-y-3">
+            {visibleMessages.length === 0 && (
+              <p className="text-center text-sm text-gray-400 py-8">
+                {role === 'cook'
+                  ? 'Edit and send your opening message below to start the conversation!'
+                  : 'Waiting for your cook to start the conversation...'}
+              </p>
+            )}
+
+            {visibleMessages.map((message) => {
+              const isDraft = (message as any).isDraft;
+              const isInvoice = (message as any).isInvoice;
+              const isMine = message.sender === role;
+
+              return (
+                <div key={message.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                      isDraft
+                        ? 'bg-orange-50 border-2 border-dashed border-orange-300 text-orange-800'
+                        : isMine
+                        ? 'bg-orange-500 text-white'
+                        : isInvoice
+                        ? 'bg-green-50 border border-green-200 text-green-800 font-semibold'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {isDraft && (
+                      <p className="text-xs font-semibold mb-1 text-orange-500">
+                        ✏️ Draft — edit and send below
+                      </p>
+                    )}
+                    {isInvoice && (
+                      <p className="text-xs font-semibold mb-1 text-green-600">📋 Invoice</p>
+                    )}
+                    <p>{message.text}</p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Invoice breakdown + Pay button in chat */}
+            {role === 'customer' && chatStatus === 'invoiced' && invoiceItems.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
+                <p className="font-semibold text-green-800 text-sm">📋 Invoice Breakdown</p>
+                {invoiceItems.map((item, index) => (
+                  <div key={index} className="flex justify-between text-sm text-green-700">
+                    <span>{item.description}</span>
+                    <span>£{item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+                <Separator className="bg-green-200" />
+                <div className="flex justify-between font-bold text-green-800">
+                  <span>Total</span>
+                  <span>£{invoiceTotal.toFixed(2)}</span>
+                </div>
                 <Button
                   className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
                   onClick={() => setShowPayment(true)}
                 >
                   💳 Pay Now — £{invoiceTotal.toFixed(2)}
                 </Button>
-              )}
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      {/* Invoice Builder — cook only */}
-      {role === 'cook' && showInvoiceBuilder && (
-        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-2 flex-shrink-0">
-          <p className="text-sm font-semibold text-gray-700">📋 Invoice Builder</p>
-          {invoiceItems.map((item, index) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <span className="flex-1 truncate text-gray-700">{item.description}</span>
-              <span className="font-semibold text-gray-800">£{item.price.toFixed(2)}</span>
-              <button
-                onClick={() => removeInvoiceItem(index)}
-                className="text-red-400 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="e.g. Boiled eggs x2"
-              value={newItemDescription}
-              onChange={(e) => setNewItemDescription(e.target.value)}
-              className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="number"
-              placeholder="£"
-              value={newItemPrice}
-              onChange={(e) => setNewItemPrice(e.target.value)}
-              className="w-16 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <button
-              onClick={addInvoiceItem}
-              className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3 py-2"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          {invoiceItems.length > 0 && (
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-sm font-bold text-gray-700">
-                Total: £{invoiceTotal.toFixed(2)}
-              </span>
-              <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={sendInvoice}
-              >
-                Send Invoice to Customer
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Message Input */}
-      <div className="px-4 py-3 border-t border-gray-200 flex-shrink-0">
-        {role === 'cook' && messages.some((m) => (m as any).isDraft) ? (
-          <div className="space-y-2">
-            <p className="text-xs text-orange-500 font-semibold">
-              ✏️ Edit your opening message then press Send
-            </p>
-            <div className="flex gap-2">
-              <textarea
-                value={draftMessage}
-                onChange={(e) => setDraftMessage(e.target.value)}
-                rows={2}
-                className="flex-1 text-sm border border-orange-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
-              />
-              <button
-                onClick={() => sendMessage(draftMessage)}
-                disabled={isSending || !draftMessage.trim()}
-                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-xl px-4 flex items-center justify-center"
-              >
-                <Send className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {role === 'cook' && chatStatus !== 'invoiced' && (
-              <button
-                onClick={() => setShowInvoiceBuilder(!showInvoiceBuilder)}
-                className="text-xs text-orange-500 hover:text-orange-600 font-semibold flex items-center gap-1"
-              >
-                <Plus className="h-3 w-3" />
-                {showInvoiceBuilder ? 'Hide Invoice Builder' : 'Build & Send Invoice'}
-              </button>
+              </div>
             )}
 
-            {chatStatus !== 'invoiced' || role === 'cook' ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage(inputText);
-                    }
-                  }}
-                  className="flex-1 text-sm border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <button
-                  onClick={() => sendMessage(inputText)}
-                  disabled={isSending || !inputText.trim()}
-                  className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0"
-                >
-                  <Send className="h-4 w-4" />
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+
+        {/* Invoice Builder — cook only */}
+        {role === 'cook' && showInvoiceBuilder && (
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-2 flex-shrink-0">
+            <p className="text-sm font-semibold text-gray-700">📋 Invoice Builder</p>
+            {invoiceItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-2 text-sm">
+                <span className="flex-1 truncate text-gray-700">{item.description}</span>
+                <span className="font-semibold text-gray-800">£{item.price.toFixed(2)}</span>
+                <button onClick={() => removeInvoiceItem(index)} className="text-red-400 hover:text-red-600">
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-            ) : (
-              <p className="text-xs text-center text-gray-400 py-2">
-                Invoice sent — awaiting customer payment
-              </p>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. Boiled eggs x2"
+                value={newItemDescription}
+                onChange={(e) => setNewItemDescription(e.target.value)}
+                className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              <input
+                type="number"
+                placeholder="£"
+                value={newItemPrice}
+                onChange={(e) => setNewItemPrice(e.target.value)}
+                className="w-16 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              <button
+                onClick={addInvoiceItem}
+                className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3 py-2"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            {invoiceItems.length > 0 && (
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-bold text-gray-700">
+                  Total: £{invoiceTotal.toFixed(2)}
+                </span>
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={sendInvoice}
+                >
+                  Send Invoice to Customer
+                </Button>
+              </div>
             )}
           </div>
         )}
+
+        {/* Message Input */}
+        <div className="px-4 py-3 border-t border-gray-200 flex-shrink-0">
+          {role === 'cook' && messages.some((m) => (m as any).isDraft) ? (
+            <div className="space-y-2">
+              <p className="text-xs text-orange-500 font-semibold">
+                ✏️ Edit your opening message then press Send
+              </p>
+              <div className="flex gap-2">
+                <textarea
+                  value={draftMessage}
+                  onChange={(e) => setDraftMessage(e.target.value)}
+                  rows={2}
+                  className="flex-1 text-sm border border-orange-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                />
+                <button
+                  onClick={() => sendMessage(draftMessage)}
+                  disabled={isSending || !draftMessage.trim()}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-xl px-4 flex items-center justify-center"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {role === 'cook' && chatStatus !== 'invoiced' && (
+                <button
+                  onClick={() => setShowInvoiceBuilder(!showInvoiceBuilder)}
+                  className="text-xs text-orange-500 hover:text-orange-600 font-semibold flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  {showInvoiceBuilder ? 'Hide Invoice Builder' : 'Build & Send Invoice'}
+                </button>
+              )}
+
+              {chatStatus !== 'invoiced' || role === 'cook' ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage(inputText);
+                      }
+                    }}
+                    className="flex-1 text-sm border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                  <button
+                    onClick={() => sendMessage(inputText)}
+                    disabled={isSending || !inputText.trim()}
+                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-center text-gray-400 py-2">
+                  Invoice sent — awaiting customer payment
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
